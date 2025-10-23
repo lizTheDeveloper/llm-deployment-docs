@@ -1,0 +1,26 @@
+# Use official vLLM image (includes CUDA, PyTorch, and all dependencies)
+FROM vllm/vllm-openai:latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy your fine-tuned model
+COPY ./vllm_model /app/model
+
+# Expose vLLM port
+EXPOSE 8000
+
+# Health check for container orchestration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Start vLLM OpenAI-compatible server (v1 engine)
+# Note: Don't add --enable-chunked-prefill or --num-scheduler-steps
+# These force v0 fallback. v1 engine (default) auto-optimizes these.
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "/app/model", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--dtype", "float16", \
+     "--max-model-len", "4096", \
+     "--gpu-memory-utilization", "0.9"]

@@ -23,6 +23,7 @@ This guide covers production deployment patterns used by companies like Salesfor
 **Choose your deployment scenario:**
 
 - **Planning capacity for 400-40K users?** → [Capacity Planning](#capacity-planning)
+- **Can't get GPU quota from AWS/GCP/Azure?** → [GPU Procurement & Supply Chain](#gpu-procurement)
 - **Need multiple 8B models?** → [Multi-Model Serving](#multi-model-serving)
 - **Deploying a 70B model (Llama 3.1, Qwen3)?** → [70B Model Deployment](#70b-model-deployment)
 - **Tackling 405B parameters?** → [405B Model Deployment](#405b-model-deployment)
@@ -34,12 +35,13 @@ This guide covers production deployment patterns used by companies like Salesfor
 ## Table of Contents
 
 1. [Capacity Planning: User Scale to Infrastructure](#capacity-planning)
-2. [Multi-Model Serving (Multiple 8B Models)](#multi-model-serving)
-3. [70B Model Deployment](#70b-model-deployment)
-4. [405B Model Deployment](#405b-model-deployment)
-5. [LoRA Multi-Tenancy for Customer-Specific Models](#lora-multi-tenancy)
-6. [Production Architecture Patterns](#production-architecture)
-7. [Cost Optimization Strategies](#cost-optimization)
+2. [GPU Procurement & Supply Chain Considerations](#gpu-procurement)
+3. [Multi-Model Serving (Multiple 8B Models)](#multi-model-serving)
+4. [70B Model Deployment](#70b-model-deployment)
+5. [405B Model Deployment](#405b-model-deployment)
+6. [LoRA Multi-Tenancy for Customer-Specific Models](#lora-multi-tenancy)
+7. [Production Architecture Patterns](#production-architecture)
+8. [Cost Optimization Strategies](#cost-optimization)
 
 ---
 
@@ -224,6 +226,263 @@ All throughput calculations based on documented benchmarks:
 
 [^12]: vLLM Performance Benchmarks - https://github.com/vllm-project/vllm/blob/main/.buildkite/nightly-benchmarks/performance-benchmarks-descriptions.md
 [^13]: A5000 vLLM Benchmark Results - https://www.databasemart.com/blog/vllm-gpu-benchmark-a5000
+
+---
+
+## GPU Procurement & Supply Chain Considerations {#gpu-procurement}
+
+### Current Supply Chain Challenges (2025)
+
+**Critical Reality:** Enterprise-scale LLM deployment in 2025 faces significant GPU procurement challenges that can delay projects by weeks or months. Understanding these constraints is essential for realistic capacity planning.
+
+#### Global GPU Shortage Status
+
+As of October 2025, the GPU market faces unprecedented supply constraints:
+
+**Supply Disruptions:**
+- **Taiwan Earthquake (Q1 2025):** Damaged over 30,000 critical wafers at TSMC facilities, impacting H100/H200 production[^supply1]
+- **Export Controls:** US restrictions on AI chips to 120+ countries (including allies) reduced global availability[^supply2]
+- **Enterprise Allocation:** Nvidia allocated 60% of chip production to large enterprise AI clients in Q1 2025[^supply3]
+- **Lead Times:** H100 delivery times range from 8-12 weeks (improved from 16+ weeks in 2024)[^supply4]
+
+[^supply1]: Taiwan Earthquake Impact - https://www.datacenterdynamics.com/en/news/taiwans-earthquake-impacts-gpu-supply-chain/
+[^supply2]: US AI Diffusion Framework (January 2025) - https://csis-website-prod.s3.amazonaws.com/s3fs-public/2025-03/250314_Allen_AI_Controls.pdf
+[^supply3]: GPU Shortage 2025 Analysis - https://blog.io.net/article/2025-gpu-shortage
+[^supply4]: Nvidia H100 Lead Times - https://www.tomshardware.com/pc-components/gpus/nvidias-h100-ai-gpu-shortages-ease-as-lead-times-drop-from-up-to-four-months-to-8-12-weeks
+
+#### US Export Controls Impact
+
+**December 2024 Controls:**
+- Added 24 types of semiconductor manufacturing equipment to restricted list
+- Added 140 Chinese entities to Entity List (requires special licenses)
+- Country-wide restrictions on advanced HBM (High Bandwidth Memory) exports to China[^export1]
+
+**January 2025 AI Diffusion Framework:**
+- Three-tier system restricting access to advanced AI hardware
+- 120 countries (including Israel, India, Singapore) face chip quantity caps
+- H100, A100, and advanced models subject to export licensing[^export2]
+
+**Mid-2025 Rollback:**
+- Trump administration withdrew blanket AI diffusion rule
+- Replaced with chip-specific restrictions (NVIDIA H20, AMD MI308)
+- Still impacts global supply chain availability[^export3]
+
+[^export1]: US Export Controls December 2024 - https://www.csis.org/analysis/where-chips-fall-us-export-controls-under-biden-administration-2022-2024
+[^export2]: AI Diffusion Framework January 2025 - https://www.congress.gov/crs-product/R48642
+[^export3]: Export Controls Rollback - https://itif.org/publications/2025/05/05/export-controls-chip-away-us-ai-leadership/
+
+### Cloud Provider Quota Limitations
+
+#### Default Quotas (New Accounts)
+
+**AWS EC2:**
+- **Default G/VT instance quota:** 0 vCPUs (cannot launch any GPU instances)[^quota1]
+- **Request process:** Service Quotas console → "Running On-Demand G and VT instances"
+- **Approval time:** Hours to days (often rejected for new accounts)
+- **Typical approval:** 4-32 vCPUs (1-8 g5.xlarge instances) for first request
+
+**GCP Compute Engine:**
+- **Default GPU quota:** 0 GPUs in most regions[^quota2]
+- **Request process:** IAM & Admin → Quotas → GPU (All Regions)
+- **Approval time:** 2-48 hours
+- **Geographic restrictions:** Limited GPU availability even with approved quotas
+
+**Azure Virtual Machines:**
+- **Default NC/ND quota:** 0 cores[^quota3]
+- **Request process:** Support → New support request → Service and subscription limits
+- **Approval time:** 1-5 business days
+- **Enterprise priority:** Existing enterprise customers get faster approvals
+
+[^quota1]: AWS EC2 Service Quotas - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html
+[^quota2]: GCP GPU Quotas - https://cloud.google.com/compute/quotas
+[^quota3]: Azure VM Quotas - https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu
+
+#### Quota Request Best Practices
+
+**1. Provide Business Justification:**
+```
+Example request:
+"Deploying production LLM inference service for 10,000 users.
+Require 4× g5.xlarge instances for Llama 3.1 70B deployment
+with tensor parallelism. Expected throughput: 30,000 tokens/sec."
+```
+
+**2. Start Small, Scale Gradually:**
+- First request: 1-2 instances (demonstrate usage)
+- After 2-4 weeks: Request increase based on actual metrics
+- Enterprise accounts: Can request larger quotas with AWS TAM support
+
+**3. Regional Availability:**
+| Region | GPU Availability (AWS) | Lead Time |
+|--------|----------------------|-----------|
+| us-east-1 (N. Virginia) | ✅ Best | 2-24 hours |
+| us-west-2 (Oregon) | ✅ Good | 4-48 hours |
+| eu-west-1 (Ireland) | ⚠️ Moderate | 1-5 days |
+| ap-southeast-1 (Singapore) | ⚠️ Limited | 5-14 days |
+| Other regions | ❌ Very Limited | 14+ days |
+
+### Alternative GPU Providers (Instant Access)
+
+For enterprises unable to wait for hyperscaler quota approvals, specialized GPU cloud providers offer immediate access:
+
+#### RunPod (Recommended for Rapid Deployment)
+
+**Advantages:**
+- ✅ **Instant access:** Deploy in < 1 minute, no quota requests
+- ✅ **Default quota:** 2 nodes (up to 16 GPUs) for all accounts
+- ✅ **Cost:** 50-70% cheaper than AWS/GCP/Azure[^runpod1]
+- ✅ **GPU selection:** H100, H200, A100, L40S, RTX 4090 available
+- ✅ **Per-second billing:** Pay only for actual usage
+
+**Pricing Comparison (October 2025):**
+| GPU | AWS p5/g5 | RunPod | Savings |
+|-----|-----------|--------|---------|
+| H100 80GB | ~$32.77/hr (p5.48xlarge ÷ 8) | ~$2.89/hr | 91% |
+| A100 40GB | ~$4.10/hr (p4d.24xlarge ÷ 8) | ~$1.39/hr | 66% |
+| A10G 24GB | ~$1.01/hr (g5.xlarge) | ~$0.79/hr (L40S) | 22% |
+
+**Use Cases:**
+- Prototype/development environments
+- Short-term production deployments
+- Overflow capacity during peak demand
+- Projects requiring immediate GPU access
+
+[^runpod1]: RunPod vs AWS Comparison - https://ethanmillerai.medium.com/runpod-vs-aws-which-cloud-gpu-provider-wins-for-ai-workloads-in-2025-4836b19b5300
+
+#### Lambda Labs
+
+**Advantages:**
+- ✅ Instant GPU access (no waitlists for most GPU types)
+- ✅ Simple pricing: $1.10-$1.89/hr for A100 instances
+- ✅ Bare metal performance (no virtualization overhead)
+- ✅ CLI and API for automation
+
+**Limitations:**
+- ⚠️ Availability fluctuates by region
+- ⚠️ No guaranteed SLA for spot-style instances
+
+#### CoreWeave
+
+**Advantages:**
+- ✅ Enterprise-grade SLAs
+- ✅ Kubernetes-native infrastructure
+- ✅ Direct Ethernet fabric (400Gbps InfiniBand alternative)
+- ✅ H100, H200 availability
+
+**Requirements:**
+- ⚠️ Minimum commit typically required for reserved capacity
+- ⚠️ Higher pricing than RunPod/Lambda (but still cheaper than hyperscalers)
+
+### Procurement Strategies for Enterprise Deployments
+
+#### Strategy 1: Multi-Cloud Approach
+
+**Recommended Architecture:**
+```
+Primary: AWS (70% capacity)
+  ↓ Quota approved over 6-12 months
+  ↓ Reserved instances for cost savings
+
+Backup: RunPod (30% capacity)
+  ↓ Instant overflow capacity
+  ↓ Handle traffic spikes
+
+Development: Lambda Labs or Local
+  ↓ Prototype and testing
+```
+
+**Benefits:**
+- Avoid single-provider quota constraints
+- Cost optimization (use cheaper providers for overflow)
+- Risk mitigation (supply chain disruption resilience)
+
+#### Strategy 2: Gradual Quota Scaling
+
+**Timeline for AWS GPU Quota Growth:**
+
+| Month | Action | Quota Target | Instances |
+|-------|--------|--------------|-----------|
+| Month 1 | Initial request | 4-8 vCPUs | 1-2× g5.xlarge |
+| Month 2-3 | Demonstrate usage | 32 vCPUs | 8× g5.xlarge |
+| Month 4-6 | Request increase | 128 vCPUs | 2× g5.12xlarge |
+| Month 7-12 | Enterprise tier | 1024+ vCPUs | 8-16× p5.48xlarge |
+
+**Key Actions:**
+- Track CloudWatch metrics showing GPU utilization
+- Submit monthly usage reports with quota requests
+- Engage AWS Technical Account Manager (TAM) if available
+
+#### Strategy 3: Reserved Capacity
+
+**AWS Savings Plans (30-50% discount):**
+```bash
+# 1-year commitment example:
+# Standard: $32.77/hr for p5.48xlarge = $287,000/year
+# Savings Plan: $16.39/hr = $143,500/year (50% savings)
+```
+
+**When to commit:**
+- ✅ After 3+ months of stable usage patterns
+- ✅ When quota increases are predictable
+- ✅ For baseline capacity (use spot/on-demand for spikes)
+
+#### Strategy 4: Spot Instances (70% Cost Reduction)
+
+**AWS Spot Instance Strategy:**
+- Use for non-critical workloads or batch inference
+- Typical availability: 85-95% uptime
+- Fallback to on-demand when spot unavailable
+
+**Best Practices:**
+```yaml
+# Karpenter spot provisioner with fallback
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+spec:
+  requirements:
+  - key: karpenter.sh/capacity-type
+    operator: In
+    values: ["spot", "on-demand"]  # Fallback to on-demand
+  limits:
+    resources:
+      nvidia.com/gpu: 100
+```
+
+### Lead Time Expectations (October 2025)
+
+**Realistic procurement timelines:**
+
+| GPU Type | Provider | Lead Time | Notes |
+|----------|----------|-----------|-------|
+| **1-4 GPUs (A10G, L4)** | AWS (quota) | 1-7 days | First request for new accounts |
+| | RunPod | < 5 minutes | Instant availability |
+| **8-16 GPUs (A100)** | AWS (quota) | 7-30 days | Requires established account history |
+| | Lambda Labs | < 1 hour | Usually available |
+| **32-64 GPUs (H100)** | AWS (quota) | 30-90 days | Enterprise TAM recommended |
+| | CoreWeave | 1-14 days | May require minimum commit |
+| **128+ GPUs** | AWS (reserved) | 60-180 days | Requires capacity reservation |
+| | Custom datacenter | 6-12 months | Direct NVIDIA partnership |
+
+### Risk Mitigation Checklist
+
+**Before committing to enterprise deployment:**
+
+- [ ] **Quota buffer:** Request 2x expected capacity (accounts for growth + failures)
+- [ ] **Multi-region redundancy:** Deploy across 2+ AWS regions
+- [ ] **Alternative provider setup:** Have RunPod/Lambda accounts pre-configured
+- [ ] **Spot instance testing:** Validate workloads can handle interruptions
+- [ ] **Reserved capacity analysis:** Model 12-month usage to determine reservation targets
+- [ ] **Export compliance:** Verify deployment regions comply with export restrictions
+- [ ] **Vendor relationships:** Establish contact with cloud provider account teams
+- [ ] **Emergency procurement plan:** Document process for emergency capacity requests
+
+### Supply Chain Monitoring Resources
+
+**Track GPU availability:**
+- **AWS Instance Availability:** https://aws.amazon.com/ec2/instance-types/ (check regional capacity)
+- **NVIDIA Supply Updates:** https://nvidianews.nvidia.com/ (official announcements)
+- **GPU Pricing Tracker:** https://gpupricing.io/ (real-time pricing across providers)
+- **vLLM Community:** https://github.com/vllm-project/vllm/discussions (deployment experiences)
 
 ---
 

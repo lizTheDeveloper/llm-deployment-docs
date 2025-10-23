@@ -2,93 +2,46 @@
 
 Production-ready guides for deploying large language models at any scale, from single GPU instances to enterprise Kubernetes clusters.
 
-## Which Guide Should I Read?
+## Start Here
 
-### Just Getting Started?
-→ **[Cloud GPU Deployment Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md)** - Deploy your first LLM to AWS, GCP, or Azure in 15 minutes
+### New to LLM Deployment?
+→ **[Lab 8: Production vLLM Deployment](LAB_8_VLLM_DEPLOYMENT.md)** - Deploy your first LLM with Docker in 30 minutes
 
-### Deploying at Scale?
-→ **[Enterprise-Scale Deployment](ENTERPRISE_SCALE_DEPLOYMENT.md)** - Multi-model serving, 70B+ models, LoRA multi-tenancy
+### Want Tool Calling & Multi-Service Architecture?
+→ **[Lab 9: FastAPI Tool Calling](LAB_9_TOOL_CALLING.md)** - Build a two-tier system (FastAPI + vLLM) in 45 minutes
 
-### Looking for Real-World Examples?
-→ **[Real-World Case Studies](REAL_WORLD_DEPLOYMENT_BLOGS.md)** - 50+ blog posts from companies like Salesforce, Meta, and Anthropic
+### Deploying to Cloud?
+→ **[Cloud GPU Deployment Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md)** - AWS/GCP/Azure deployment for Mac users
+
+### Scaling to Production?
+→ **[Enterprise-Scale Deployment](ENTERPRISE_SCALE_DEPLOYMENT.md)** - Kubernetes, multi-model serving, 70B+ models
+
+### Learning from Others?
+→ **[Real-World Case Studies](REAL_WORLD_DEPLOYMENT_BLOGS.md)** - 50+ blog posts from Salesforce, Meta, Anthropic
 
 ---
 
-## Lab Files
+## Reference Files
 
-This repository includes production-ready code from Labs 8 and 9:
-
-**Lab 8 - vLLM Deployment**
+Production code examples from the course labs:
 - `Dockerfile.vllm` - Production Docker image with vLLM v1 engine
-
-**Lab 9 - Tool Calling with FastAPI**
 - `tool_orchestrator.py` - FastAPI orchestration layer for tool calling
-- `docker-compose.yml` - Multi-service deployment (vLLM + orchestrator)
-- `Dockerfile.orchestrator` - Docker image for FastAPI layer
-
-### Quick Start
-
-```bash
-# Single vLLM service (Lab 8)
-docker build -f Dockerfile.vllm -t my-llm-service .
-docker run --gpus all -p 8000:8000 my-llm-service
-
-# Multi-service with tool calling (Lab 9)
-docker-compose up
-```
+- `docker-compose.yml` - Multi-service deployment example
 
 ---
 
-## Deployment Guides Overview
+## Common Deployment Scenarios
 
-### Cloud GPU Deployment Guide
-
-**For:** Mac users, first-time cloud deployers, single-instance staging environments
-
-**Covers:**
-- Step-by-step AWS/GCP/Azure GPU instance setup
-- Deploying vLLM and llama.cpp containers
-- SSH, Docker, and API configuration
-- Cost optimization strategies
-- Mac local testing with Ollama
-
-### Enterprise-Scale Deployment
-
-**For:** Production deployments, multi-model serving, enterprise workloads
-
-**Covers:**
-- Multi-model serving with Kubernetes
-- 70B models with tensor parallelism (4× A100)
-- 405B models with pipeline parallelism (multi-node)
-- LoRA multi-tenancy for customer-specific models
-- Autoscaling, monitoring, and cost optimization
-
-### Real-World Deployment Blogs
-
-**For:** Learning from production deployments, researching vendor solutions
-
-**Includes:**
-- vLLM Production Stack and v1 engine case studies
-- Cloud platform guides (AWS Bedrock, Vertex AI, Azure)
-- Enterprise deployments (Salesforce, FactSet, Ford Direct)
-- Multi-tenant LoRA serving (Punica, SageMaker)
-- Infrastructure at scale (Meta Llama 3.1 on 16K H100s)
-
----
-
-## Quick Reference Table
-
-| Your Goal | Guide | Key Concepts |
-|-----------|-------|--------------|
-| Deploy first model to cloud | Cloud GPU Guide | AWS EC2, SSH, vLLM container |
-| Run 7B model in production | Cloud GPU Guide | A10G instance, monitoring |
-| Serve multiple 7B models | Enterprise-Scale | Multi-model, Kubernetes |
-| Deploy 70B model | Enterprise-Scale | Tensor parallelism, A100 |
-| Deploy 405B model | Enterprise-Scale | Pipeline parallelism, H100, FP8 |
-| Customer-specific LoRAs | Enterprise-Scale | S-LoRA, multi-tenancy |
-| Tool calling / RAG | Lab 9 files | FastAPI, two-tier architecture |
-| Learn from case studies | Real-World Blogs | Vendor comparisons, benchmarks |
+| Your Goal | Start With | What You'll Build |
+|-----------|------------|-------------------|
+| First LLM deployment | [Lab 8: vLLM Deployment](LAB_8_VLLM_DEPLOYMENT.md) | Docker container with OpenAI API (30 min) |
+| Tool calling system | [Lab 9: Tool Calling](LAB_9_TOOL_CALLING.md) | FastAPI + vLLM two-tier architecture (45 min) |
+| Cloud deployment | [Cloud GPU Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md) | Single 7B model on AWS/GCP/Azure |
+| Multiple models | [Enterprise-Scale](ENTERPRISE_SCALE_DEPLOYMENT.md) | Multi-model Kubernetes deployment |
+| Large model (70B) | [Enterprise-Scale](ENTERPRISE_SCALE_DEPLOYMENT.md) | Tensor parallelism on 4× A100 GPUs |
+| Massive model (405B) | [Enterprise-Scale](ENTERPRISE_SCALE_DEPLOYMENT.md) | Pipeline + tensor parallelism (multi-node) |
+| Customer-specific models | [Enterprise-Scale](ENTERPRISE_SCALE_DEPLOYMENT.md) | LoRA multi-tenancy (2,000+ adapters) |
+| Research case studies | [Real-World Blogs](REAL_WORLD_DEPLOYMENT_BLOGS.md) | Learn from Salesforce, Meta, Anthropic |
 
 ---
 

@@ -3,7 +3,7 @@
 Scale from single-GPU deployments to production systems serving thousands of users with multi-model serving, 70B+ parameter models, and customer-specific LoRA adapters.
 
 **For:** Production engineering teams, SRE/DevOps, infrastructure architects
-**Updated:** January 2025 (vLLM v1 engine)
+**Updated:** October 2025 (vLLM v0.11.1, v1 engine)
 
 ---
 
@@ -888,15 +888,21 @@ vllm serve \
 
 ## Additional Resources
 
-- **vLLM Documentation:** https://docs.vllm.ai/
-- **vLLM v1 Announcement:** https://blog.vllm.ai/2025/01/13/v1.html
-- **S-LoRA Paper:** https://arxiv.org/abs/2311.03285
-- **Punica Framework:** https://github.com/punica-ai/punica
-- **AWS GPU Instances:** https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing
-- **NVIDIA GPU Memory Calculator:** https://resources.nvidia.com/en-us-llm
+### Official Documentation
+- **vLLM Documentation:** [https://docs.vllm.ai/](https://docs.vllm.ai/) - Comprehensive vLLM user guide and API reference
+- **vLLM v1 Architecture:** [https://blog.vllm.ai/2025/01/27/v1-alpha-release.html](https://blog.vllm.ai/2025/01/27/v1-alpha-release.html) - vLLM V1 core architecture (1.7x speedup)
+- **vLLM GitHub Releases:** [https://github.com/vllm-project/vllm/releases](https://github.com/vllm-project/vllm/releases) - Latest releases (v0.11.1 as of October 14, 2025)
+
+### Research Papers & Frameworks
+- **S-LoRA Paper:** [https://arxiv.org/abs/2311.03285](https://arxiv.org/abs/2311.03285) - Scalable serving of thousands of LoRA adapters
+- **Punica Framework:** [https://github.com/punica-ai/punica](https://github.com/punica-ai/punica) - Multi-LoRA batching (12x throughput)
+- **FlashAttention 3:** [https://arxiv.org/abs/2407.08608](https://arxiv.org/abs/2407.08608) - High-performance attention kernel
+
+### Cloud Provider Resources
+- **AWS GPU Instances:** [https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing](https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing)
+- **GCP GPU VMs:** [https://cloud.google.com/compute/docs/gpus](https://cloud.google.com/compute/docs/gpus)
+- **Azure GPU VMs:** [https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu)
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** January 2025
-**Maintained by:** Mastering LLM Deployment Course
+**Last Updated:** October 2025 | **vLLM Version:** v0.11.1 (October 2025)

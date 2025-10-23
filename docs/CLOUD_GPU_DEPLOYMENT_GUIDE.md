@@ -810,6 +810,24 @@ Once your single GPU instance is working:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** January 2025
-**Maintained for:** Mac developers deploying to cloud GPU infrastructure
+## References
+
+### Official Documentation
+- **vLLM Documentation:** [https://docs.vllm.ai/](https://docs.vllm.ai/) - Official vLLM user guide
+- **vLLM v1 Architecture:** [https://blog.vllm.ai/2025/01/27/v1-alpha-release.html](https://blog.vllm.ai/2025/01/27/v1-alpha-release.html) - vLLM V1 architecture (1.7x speedup)
+- **vLLM GitHub Releases:** [https://github.com/vllm-project/vllm/releases](https://github.com/vllm-project/vllm/releases) - Latest releases (v0.11.1 as of October 14, 2025)
+
+### Cloud Provider Documentation
+- **AWS EC2 GPU Instances:** [https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing](https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing)
+- **AWS Deep Learning AMI:** [https://aws.amazon.com/machine-learning/amis/](https://aws.amazon.com/machine-learning/amis/)
+- **GCP GPU VMs:** [https://cloud.google.com/compute/docs/gpus](https://cloud.google.com/compute/docs/gpus)
+- **Azure GPU VMs:** [https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu)
+
+### Additional Tools
+- **Ollama Documentation:** [https://ollama.ai/](https://ollama.ai/) - Local LLM serving on Mac
+- **llama.cpp GitHub:** [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp) - CPU inference with GGUF models
+
+---
+
+**Last Updated:** October 2025 | **vLLM Version:** v0.11.1 (October 2025)
+**For:** Mac developers deploying to cloud GPU infrastructure

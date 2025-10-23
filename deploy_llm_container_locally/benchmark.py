@@ -6,12 +6,52 @@ Benchmark script to measure tokens/second performance
 import requests
 import time
 import json
+import sys
+import os
+import argparse
+from pathlib import Path
 from statistics import mean, stdev
 
-BASE_URL = "http://localhost:8000"
+# Load environment variables from .env file if it exists
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent / '.env'
+    load_dotenv(env_path)
+except ImportError:
+    # dotenv not installed, skip loading .env file
+    pass
+
+# Get configuration from environment variables
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_KEY = os.getenv("API_KEY", None)
+
+def get_headers():
+    """Get headers with optional authorization"""
+    headers = {"Content-Type": "application/json"}
+    if API_KEY:
+        headers["Authorization"] = f"Bearer {API_KEY}"
+    return headers
+
+
+def get_model_name():
+    """Get the actual model name from the API"""
+    try:
+        headers = get_headers()
+        response = requests.get(f"{BASE_URL}/v1/models", headers=headers, timeout=10)
+        if response.status_code == 200:
+            models = response.json().get('data', [])
+            if models:
+                return models[0]['id']
+    except:
+        pass
+    return "qwen"  # fallback
+
 
 def benchmark_chat(num_requests=20, max_tokens=50):
     """Run benchmark on chat completions endpoint"""
+    
+    # Get the actual model name
+    model_name = get_model_name()
     
     prompts = [
         "Explain what Docker is in one sentence.",
@@ -39,8 +79,11 @@ def benchmark_chat(num_requests=20, max_tokens=50):
     print(f"🚀 Starting Benchmark")
     print(f"{'='*60}")
     print(f"Endpoint: {BASE_URL}/v1/chat/completions")
+    print(f"Model: {model_name}")
     print(f"Requests: {num_requests}")
     print(f"Max tokens per request: {max_tokens}")
+    if API_KEY:
+        print(f"API Key: {API_KEY[:10]}...{API_KEY[-4:]}")
     print(f"{'='*60}\n")
     
     results = []
@@ -51,7 +94,7 @@ def benchmark_chat(num_requests=20, max_tokens=50):
         prompt = prompts[i % len(prompts)]
         
         payload = {
-            "model": "qwen",
+            "model": model_name,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens
         }
@@ -59,9 +102,10 @@ def benchmark_chat(num_requests=20, max_tokens=50):
         start_time = time.time()
         
         try:
+            headers = get_headers()
             response = requests.post(
                 f"{BASE_URL}/v1/chat/completions",
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 json=payload,
                 timeout=60
             )
@@ -138,23 +182,74 @@ def benchmark_chat(num_requests=20, max_tokens=50):
 
 
 if __name__ == "__main__":
-    import sys
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Benchmark OpenAI-compatible API endpoints",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Benchmark local server
+  python benchmark.py 20 50
+
+  # Benchmark RunPod deployment
+  python benchmark.py --url https://abc123-8000.proxy.runpod.net --api-key sk-yourkey 20 50
+
+  # Use environment variables
+  export API_BASE_URL=https://abc123-8000.proxy.runpod.net
+  export API_KEY=sk-yourkey
+  python benchmark.py 20 50
+        """
+    )
+    parser.add_argument(
+        "num_requests",
+        nargs="?",
+        type=int,
+        default=20,
+        help="Number of requests to send (default: 20)"
+    )
+    parser.add_argument(
+        "max_tokens",
+        nargs="?",
+        type=int,
+        default=50,
+        help="Maximum tokens per request (default: 50)"
+    )
+    parser.add_argument(
+        "--url",
+        help="Base URL of the API",
+        default=BASE_URL
+    )
+    parser.add_argument(
+        "--api-key",
+        help="API key for authentication (Bearer token)",
+        default=API_KEY
+    )
     
-    # Check if server is running
+    args = parser.parse_args()
+    
+    # Update globals from arguments
+    BASE_URL = args.url
+    API_KEY = args.api_key
+    
+    # Check if server is accessible
+    print(f"Checking server at {BASE_URL}...")
     try:
-        response = requests.get(f"{BASE_URL}/health", timeout=2)
-        if response.status_code != 200:
-            print(f"❌ Server not healthy at {BASE_URL}")
+        headers = get_headers()
+        response = requests.get(f"{BASE_URL}/v1/models", headers=headers, timeout=10)
+        if response.status_code == 200:
+            print(f"✅ Server is accessible\n")
+        elif response.status_code == 401:
+            print(f"❌ Authorization failed. Check your API key.")
             sys.exit(1)
-    except requests.exceptions.RequestException:
+        else:
+            print(f"⚠️  Server responded with status {response.status_code}")
+            print(f"   Continuing anyway...\n")
+    except requests.exceptions.RequestException as error:
         print(f"❌ Cannot connect to server at {BASE_URL}")
-        print("   Make sure the MLX server is running:")
-        print("   ./run_mlx_native.sh")
+        print(f"   Error: {error}")
+        print(f"   Make sure the server is running and accessible")
         sys.exit(1)
     
     # Run benchmark
-    num_requests = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-    max_tokens = int(sys.argv[2]) if len(sys.argv) > 2 else 50
-    
-    benchmark_chat(num_requests=num_requests, max_tokens=max_tokens)
+    benchmark_chat(num_requests=args.num_requests, max_tokens=args.max_tokens)
 

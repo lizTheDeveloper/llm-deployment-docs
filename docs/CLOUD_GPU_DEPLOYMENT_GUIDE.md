@@ -69,14 +69,16 @@ CPU inference       Full model performance          Enterprise workloads
 
 | Instance Type | GPU | VRAM | Use Case | Cost/Hour |
 |---------------|-----|------|----------|-----------|
+| **g4dn.xlarge** | **T4 (16GB)** | **16GB** | **1.5B-3B models, 4-bit quantized 7B** | **$0.526** |
 | g5.xlarge | A10G (24GB) | 24GB | 7B models (FP16) | $1.01 |
 | g5.2xlarge | A10G (24GB) | 24GB | 7B-13B models | $1.21 |
 | g5.12xlarge | 4× A10G | 96GB | 70B models | $5.67 |
-| p3.2xlarge | V100 (16GB) | 16GB | 7B models (budget) | $3.06 |
+| p3.2xlarge | V100 (16GB) | 16GB | 7B models (older GPU) | $3.06 |
 | p4d.24xlarge | 8× A100 (40GB) | 320GB | 70B+ models | $32.77 |
 | p5.48xlarge | 8× H100 (80GB) | 640GB | 405B models | ~$40 |
 
-**Recommended for most users:** `g5.xlarge` (A10G 24GB) - great price/performance for 7B models
+**Recommended for small models (1.5B-3B):** `g4dn.xlarge` (T4 16GB) - most cost-effective at $0.526/hour
+**Recommended for 7B models:** `g5.xlarge` (A10G 24GB) - great price/performance for 7B models
 
 ### Step 2: Launch EC2 Instance (AWS Console)
 
@@ -111,6 +113,83 @@ CPU inference       Full model performance          Enterprise workloads
    - Configure: **100 GB gp3** (for model storage)
 
 8. **Launch Instance**
+
+### Step 2 Alternative: Launch EC2 Instance (AWS CLI)
+
+**For users who prefer command-line deployment:**
+
+```bash
+# 1. Verify AWS CLI is configured
+aws sts get-caller-identity
+
+# 2. Get your public IP for security group
+export MY_IP=$(curl -s https://checkip.amazonaws.com)
+
+# 3. Get default VPC ID
+export VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query "Vpcs[0].VpcId" --output text)
+
+# 4. Create security group
+export SG_ID=$(aws ec2 create-security-group \
+  --group-name llm-server-sg \
+  --description "Security group for LLM inference server" \
+  --vpc-id $VPC_ID \
+  --query 'GroupId' --output text)
+
+# 5. Add firewall rules (SSH and vLLM API access)
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr ${MY_IP}/32
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 8000 --cidr ${MY_IP}/32
+
+# 6. Find latest Deep Learning AMI
+export AMI_ID=$(aws ec2 describe-images \
+  --owners amazon \
+  --filters "Name=name,Values=Deep Learning AMI GPU PyTorch*" "Name=state,Values=available" \
+  --query "reverse(sort_by(Images, &CreationDate))[0].ImageId" \
+  --output text)
+
+# 7. Create SSH key pair
+aws ec2 create-key-pair --key-name llm-server-key \
+  --query 'KeyMaterial' --output text > ~/.ssh/llm-server-key.pem
+chmod 400 ~/.ssh/llm-server-key.pem
+
+# 8. Launch instance (choose instance type based on your model size)
+
+# For 1.5B-3B models or 4-bit quantized 7B models (RECOMMENDED - CHEAPEST):
+export INSTANCE_ID=$(aws ec2 run-instances \
+  --image-id $AMI_ID \
+  --instance-type g4dn.xlarge \
+  --key-name llm-server-key \
+  --security-group-ids $SG_ID \
+  --block-device-mappings "DeviceName=/dev/xvda,Ebs={VolumeSize=50,VolumeType=gp3}" \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=llm-inference-3b}]' \
+  --query 'Instances[0].InstanceId' \
+  --output text)
+
+# OR for 7B FP16 models:
+# export INSTANCE_ID=$(aws ec2 run-instances \
+#   --image-id $AMI_ID \
+#   --instance-type g5.xlarge \
+#   --key-name llm-server-key \
+#   --security-group-ids $SG_ID \
+#   --block-device-mappings "DeviceName=/dev/xvda,Ebs={VolumeSize=100,VolumeType=gp3}" \
+#   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=llm-inference-7b}]' \
+#   --query 'Instances[0].InstanceId' \
+#   --output text)
+
+# 9. Wait for instance to be running (takes ~2 minutes)
+aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+# 10. Get the public IP address
+export INSTANCE_IP=$(aws ec2 describe-instances \
+  --instance-ids $INSTANCE_ID \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text)
+
+echo "Instance launched! Public IP: $INSTANCE_IP"
+echo "SSH command: ssh -i ~/.ssh/llm-server-key.pem ubuntu@$INSTANCE_IP"
+
+# IMPORTANT: To terminate the instance when done:
+# aws ec2 terminate-instances --instance-ids $INSTANCE_ID
+```
 
 ### Step 3: Connect from Your Mac
 
@@ -408,6 +487,8 @@ docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
 
 ### Option 1: Quick Start with Hugging Face Model
 
+**For 7B models (requires g5.xlarge or larger):**
+
 ```bash
 # Deploy Qwen 7B model with vLLM (pulls model from Hugging Face)
 docker run -d \
@@ -425,6 +506,58 @@ docker run -d \
 docker logs -f vllm-server
 
 # Wait for "Application startup complete" message
+```
+
+**For small models 1.5B-3B (works on g4dn.xlarge - most cost-effective):**
+
+```bash
+# Deploy LLaMA3.2 3B model with vLLM
+docker run -d \
+  --name vllm-server \
+  --gpus all \
+  -p 8000:8000 \
+  -e HF_TOKEN=your_huggingface_token \
+  vllm/vllm-openai:latest \
+  --model meta-llama/Llama-3.2-3B-Instruct \
+  --dtype float16 \
+  --gpu-memory-utilization 0.8 \
+  --max-model-len 4096
+
+# Or deploy Qwen 1.5B (even smaller, faster):
+# docker run -d \
+#   --name vllm-server \
+#   --gpus all \
+#   -p 8000:8000 \
+#   vllm/vllm-openai:latest \
+#   --model Qwen/Qwen2.5-1.5B-Instruct \
+#   --dtype float16 \
+#   --gpu-memory-utilization 0.8 \
+#   --max-model-len 4096
+
+# Check logs
+docker logs -f vllm-server
+
+# Wait for "Application startup complete" message
+```
+
+**For 4-bit quantized models (even more memory efficient):**
+
+```bash
+# Deploy 4-bit quantized LLaMA 7B on g4dn.xlarge (16GB T4)
+docker run -d \
+  --name vllm-server \
+  --gpus all \
+  -p 8000:8000 \
+  -e HF_TOKEN=your_huggingface_token \
+  vllm/vllm-openai:latest \
+  --model meta-llama/Llama-3.2-3B-Instruct \
+  --quantization awq \
+  --dtype half \
+  --gpu-memory-utilization 0.8 \
+  --max-model-len 4096
+
+# Check logs
+docker logs -f vllm-server
 ```
 
 ### Option 2: Upload Your Own Model from Mac

@@ -1,10 +1,12 @@
 #!/bin/bash
 # Quick start script to run MLX-LM natively on Mac (fastest option)
 
-set -e
 
 echo "🚀 MLX-LM Native Setup for Mac (M1/M2/M3)"
 echo "=========================================="
+
+## first kill what's on port 8000
+pkill -f mlx_api_server
 
 # Check if virtual environment exists
 if [ ! -d "mlx-env" ]; then
@@ -29,14 +31,14 @@ echo "   Model: mlx-community/Qwen2.5-3B-Instruct-4bit"
 echo "   This will download the model on first run (~2.3GB)"
 echo ""
 echo "📡 Server will be available at:"
-echo "   http://localhost:8000/v1/chat/completions"
-echo "   http://localhost:8000/v1/models"
+echo "   http://localhost:8822/v1/chat/completions"
+echo "   http://localhost:8822/v1/models"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
 python mlx_api_server.py \
-  --model mlx-community/Qwen2.5-3B-Instruct-4bit \
+  --model mlx-community/Qwen3-4B-4bit \
   --host 0.0.0.0 \
-  --port 8000
+  --port 8822
 

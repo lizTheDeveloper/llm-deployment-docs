@@ -1,0 +1,32 @@
+# Simplified vLLM CPU Docker - uses pre-built packages
+# This is faster to build and more reliable than building from source
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install vLLM CPU version directly from PyPI
+# This will pull in compatible torch and other dependencies
+RUN pip install --no-cache-dir vllm-cpu-only
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Start vLLM with a small model that works well on CPU
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "TinyLlama/TinyLlama-1.1B-Chat-v1.0", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--dtype", "float16", \
+     "--max-model-len", "2048"]
+

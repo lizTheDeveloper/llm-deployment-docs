@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: llm-demo
+    ports:
+      - "8000:8080"
+    volumes:
+      - ./models:/models
+    command: >
+      -m /models/qwen-3b-q4.gguf
+      --host 0.0.0.0
+      --port 8080
+      -c 4096
+      --log-disable
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+

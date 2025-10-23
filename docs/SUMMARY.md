@@ -22,6 +22,13 @@
 * [Lab 8: FastAPI OpenAI-Compatible API](../lab_notebooks/Lab8_Deployment_OpenAI_Compatible_FastAPI.ipynb)
 * [Lab 9: FastAPI Tool Calling with vLLM](../lab_notebooks/Lab9_Deployment_OpenAI_Compatible_FastAPI_With_Tool_Calling.ipynb)
 
+## Research Papers
+
+* [📄 DeepSeek-R1: Knowledge Distillation](DEEPSEEK_R1_DISTILLATION.md)
+  * Theoretical Foundation for Lab 5
+  * Distillation Methodology (Section 2.4)
+  * Lab 5 & Lab 6 Context
+
 ## Deployment Guides
 
 * [Cloud GPU Deployment Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md)

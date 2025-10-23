@@ -16,6 +16,9 @@
   * [🧪 Lab 8: vLLM Deployment](LAB_8_VLLM_DEPLOYMENT.md)
   * [🛠️ Lab 9: FastAPI Tool Calling](LAB_9_TOOL_CALLING.md)
 
+* **Research Papers**
+  * [📄 DeepSeek-R1: Distillation](DEEPSEEK_R1_DISTILLATION.md)
+
 * **Deployment Guides**
   * [☁️ Cloud GPU Deployment](CLOUD_GPU_DEPLOYMENT_GUIDE.md)
   * [🏢 Enterprise-Scale Deployment](ENTERPRISE_SCALE_DEPLOYMENT.md)

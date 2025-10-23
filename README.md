@@ -45,6 +45,9 @@ Mastering_LLM_Deployment/
 - **[GCP Test Deployment](docs/GCP_TEST_DEPLOYMENT.md)** - Small-scale GCP deployment (400 users)
 - **[llama.cpp Docker Guide](docs/LLAMA_CPP_DOCKER_GUIDE_LINUX_ONLY.md)** - Linux-only alternative
 
+### 📄 Research Papers
+- **[DeepSeek-R1: Knowledge Distillation](docs/DEEPSEEK_R1_DISTILLATION.md)** - Theoretical foundation for Lab 5
+
 ### ✅ Solutions & Tests
 - **[Complete Lab Solutions](SOLUTIONS.md)** - All solution notebooks (Labs 1-9)
 - **[Python Tests](python_tests/)** - Mac M3 compatible test versions
@@ -90,8 +93,8 @@ python run_all_tests.py
 ### Labs 3-7: Unsloth Optimization (Requires Colab)
 - **Lab 3**: PyTorch Fundamentals ([Lab Notebook →](lab_notebooks/Lab3_PyTorch_Fundamentals.ipynb))
 - **Lab 4**: Hello Unsloth ([Lab Notebook →](lab_notebooks/Lab4_Hello_Unsloth.ipynb))
-- **Lab 5**: Knowledge Distillation with SQuAD ([Lab Notebook →](lab_notebooks/Lab5_Distillation_Unsloth_SQuAD.ipynb))
-- **Lab 6**: Model Pruning with SST-2 ([Lab Notebook →](lab_notebooks/Lab6_Pruning_Unsloth_SST2.ipynb))
+- **Lab 5**: Knowledge Distillation with SQuAD ([Lab Notebook →](lab_notebooks/Lab5_Distillation_Unsloth_SQuAD.ipynb) | [📄 Based on DeepSeek-R1 Paper →](docs/DEEPSEEK_R1_DISTILLATION.md))
+- **Lab 6**: Model Pruning with SST-2 ([Lab Notebook →](lab_notebooks/Lab6_Pruning_Unsloth_SST2.ipynb) | [📄 DeepSeek-R1 Context →](docs/DEEPSEEK_R1_DISTILLATION.md))
 - **Lab 7**: Quantization with IMDB ([Lab Notebook →](lab_notebooks/Lab7_Quantization_Unsloth_IMDB.ipynb))
 
 **⚠️ Note**: These labs require **Google Colab with CUDA**. Unsloth does not work on Mac M3.

@@ -7,6 +7,9 @@ Production-ready guides for deploying large language models at any scale, from s
 ### Course Materials
 → **[📊 Course Slides & All Labs](https://docs.google.com/presentation/d/1-FTmWgVct1Ydkwvyy8ZR-mFl7KGbH-TzZRZvfMk5aRo/edit?slide=id.g39bdb786812_0_79)** - All lab instructions, exercises, and walkthroughs
 
+### Research Papers
+→ **[📄 DeepSeek-R1: Knowledge Distillation](DEEPSEEK_R1_DISTILLATION.md)** - Theoretical foundation for Lab 5 distillation exercises
+
 ### New to LLM Deployment?
 → **[Lab 8: Production vLLM Deployment](LAB_8_VLLM_DEPLOYMENT.md)** - Deploy your first LLM with Docker in 30 minutes
 

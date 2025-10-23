@@ -13,5 +13,3 @@
 
 * **Reference**
   * [🐧 llama.cpp (Linux Only)](LLAMA_CPP_DOCKER_GUIDE_LINUX_ONLY.md)
-  * [📖 HackMD Deployment](HACKMD_DEPLOYMENT.md)
-  * [📘 GitBook Deployment](GITBOOK_DEPLOYMENT.md)

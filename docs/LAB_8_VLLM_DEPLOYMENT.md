@@ -295,6 +295,256 @@ Before deploying to production on AWS:
 
 ---
 
+## vLLM Native Tool Calling (Optional)
+
+### Overview
+
+**vLLM has built-in tool calling support** as of v0.6.3+ (enhanced in v0.8.3+). This provides an alternative to the FastAPI orchestration approach shown in Lab 9.
+
+### When to Use Native Tool Calling
+
+**Use vLLM Native Tool Calling when:**
+- You need simple, direct tool calling
+- Your use case fits the model's native capabilities
+- You want minimal setup complexity
+- Lower latency is critical
+
+**Use FastAPI Orchestration (Lab 9) when:**
+- You need complex business logic
+- Multi-step workflows with validation
+- Custom error handling and retry logic
+- Cross-model compatibility required
+- Production features like rate limiting, auth, logging
+
+### Supported Models
+
+vLLM supports tool calling for these model families:
+- **Qwen 2.5** - Excellent tool calling performance
+- **Llama 3.1/3.2/3.3** - Strong native support
+- **Mistral**, **Hermes 2/3**, **InternLM**
+- **Functionary v3.1/v3.2** - Purpose-built for function calling
+- **DeepSeek**, **GLM-4.5**, **Firefunction v2**
+- And 10+ additional model families
+
+### Required Configuration
+
+To enable tool calling in vLLM, add these flags:
+
+```bash
+docker run -d \
+  --name vllm-server \
+  --gpus all \
+  -p 8000:8000 \
+  vllm/vllm-openai:latest \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --dtype float16 \
+  --enable-auto-tool-choice \
+  --tool-call-parser qwen
+```
+
+**Key parameters:**
+- `--enable-auto-tool-choice` - Mandatory for tool calling
+- `--tool-call-parser qwen` - Specify parser for your model
+
+### Example: Simple Tool Calling
+
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "messages": [
+      {"role": "user", "content": "What is the weather in Paris?"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_current_weather",
+          "description": "Get the current weather in a given location",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "The city name"
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"]
+              }
+            },
+            "required": ["location"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  }'
+```
+
+**Response:**
+```json
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_abc123",
+            "type": "function",
+            "function": {
+              "name": "get_current_weather",
+              "arguments": "{\"location\": \"Paris\", \"unit\": \"celsius\"}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Python Example with OpenAI SDK
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="dummy"
+)
+
+# Define tools
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_current_weather",
+            "description": "Get weather in a location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string"},
+                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+                },
+                "required": ["location"]
+            }
+        }
+    }
+]
+
+# Request with tool calling
+response = client.chat.completions.create(
+    model="Qwen/Qwen2.5-7B-Instruct",
+    messages=[
+        {"role": "user", "content": "What's the weather in Tokyo?"}
+    ],
+    tools=tools,
+    tool_choice="auto"
+)
+
+# Check for tool calls
+message = response.choices[0].message
+if message.tool_calls:
+    for tool_call in message.tool_calls:
+        print(f"Function: {tool_call.function.name}")
+        print(f"Arguments: {tool_call.function.arguments}")
+```
+
+### Full Workflow Example
+
+```python
+import json
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8000/v1", api_key="dummy")
+
+# Step 1: Define your function
+def get_current_weather(location, unit="celsius"):
+    """Your actual function implementation"""
+    return {
+        "location": location,
+        "temperature": 22,
+        "unit": unit,
+        "forecast": "sunny"
+    }
+
+# Step 2: Initial request
+messages = [{"role": "user", "content": "What's the weather in Paris?"}]
+
+response = client.chat.completions.create(
+    model="Qwen/Qwen2.5-7B-Instruct",
+    messages=messages,
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "get_current_weather",
+            "description": "Get current weather",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string"},
+                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+                },
+                "required": ["location"]
+            }
+        }
+    }]
+)
+
+# Step 3: Execute function if requested
+message = response.choices[0].message
+if message.tool_calls:
+    messages.append(message)
+
+    for tool_call in message.tool_calls:
+        function_args = json.loads(tool_call.function.arguments)
+        function_result = get_current_weather(**function_args)
+
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(function_result)
+        })
+
+    # Step 4: Get final response
+    final_response = client.chat.completions.create(
+        model="Qwen/Qwen2.5-7B-Instruct",
+        messages=messages
+    )
+
+    print(final_response.choices[0].message.content)
+    # "The weather in Paris is sunny with a temperature of 22°C."
+```
+
+### Comparison: Native vs Orchestration
+
+| Feature | vLLM Native | FastAPI Orchestration (Lab 9) |
+|---------|-------------|-------------------------------|
+| Setup Complexity | ✅ Simple (2 flags) | ⚠️ Complex (FastAPI + vLLM) |
+| Latency | ✅ Lower | ⚠️ Slightly higher |
+| Business Logic | ❌ Limited | ✅ Full control |
+| Multi-step Workflows | ❌ Model-dependent | ✅ Custom orchestration |
+| Error Handling | ⚠️ Basic | ✅ Advanced validation |
+| Authentication | ❌ Not built-in | ✅ Custom auth |
+| Logging/Monitoring | ⚠️ Limited | ✅ Comprehensive |
+| Production Features | ❌ Basic | ✅ Rate limiting, caching, etc. |
+
+**Recommendation:**
+- **Prototyping/Simple apps**: Use vLLM native tool calling
+- **Production/Complex workflows**: Use FastAPI orchestration (Lab 9)
+- **Hybrid**: vLLM for tool detection, FastAPI for execution control
+
+### Additional Resources
+
+- **vLLM Tool Calling Docs**: https://docs.vllm.ai/en/stable/features/tool_calling.html
+- **OpenAI Tool Calling Guide**: https://platform.openai.com/docs/guides/function-calling
+- **Lab 9**: [FastAPI Tool Calling with vLLM](LAB_9_TOOL_CALLING.md) - Full orchestration approach
+
+---
+
 ## Troubleshooting
 
 ### "CUDA out of memory" Error

@@ -1,6 +1,6 @@
 # Real-World LLM Deployment Blog Posts & Case Studies
 
-**Last Updated:** January 2025
+**Last Updated:** October 2025
 **Purpose:** Curated collection of authoritative production deployment stories, technical deep-dives, and enterprise case studies
 
 This document contains links to blog posts from companies running LLMs at scale, organized by category for easy reference.
@@ -49,7 +49,7 @@ This document contains links to blog posts from companies running LLMs at scale,
 
 **vLLM Roundup** (Red Hat Blog)
 - January 2025: https://www.redhat.com/en/blog/vllm-roundup-january-2025
-- December 2024: https://www.redhat.com/en/blog/vllm-roundup-december-2025
+- December 2024 roundup (published March 2025): https://www.redhat.com/en/blog/vllm-roundup-december-2025
 - Monthly updates on vLLM production features and optimizations
 
 **Scale Open LLMs with vLLM Production Stack** (Medium)
@@ -486,6 +486,5 @@ This document is a living resource. Suggested updates:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** January 2025
+**Last Updated:** October 2025 | **Sources:** 2025 industry blog posts and case studies
 **Curated for:** Mastering LLM Deployment Course

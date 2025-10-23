@@ -1,9 +1,32 @@
-# Enterprise-Scale LLM Deployment Guide
+# Enterprise-Scale LLM Deployment
 
-**Target Audience:** Production deployments at Salesforce scale
-**Last Updated:** January 2025 (vLLM v1 engine)
+Scale from single-GPU deployments to production systems serving thousands of users with multi-model serving, 70B+ parameter models, and customer-specific LoRA adapters.
 
-This guide covers deploying multiple models simultaneously, large parameter models, and multi-tenant LoRA serving for enterprise environments.
+**For:** Production engineering teams, SRE/DevOps, infrastructure architects
+**Updated:** January 2025 (vLLM v1 engine)
+
+---
+
+## What You'll Learn
+
+This guide covers production deployment patterns used by companies like Salesforce, Meta, and Anthropic:
+
+- **Multi-Model Serving:** Deploy multiple 7B models simultaneously with Kubernetes
+- **Large Models:** Run 70B models with tensor parallelism, 405B models with pipeline parallelism
+- **Multi-Tenancy:** Serve 2,000+ customer-specific LoRA adapters on a single base model
+- **Cost Optimization:** Reduce infrastructure costs by 40-70% with autoscaling and spot instances
+
+---
+
+## Quick Navigation
+
+**Choose your deployment scenario:**
+
+- **Need multiple 7B models?** → [Multi-Model Serving](#multi-model-serving)
+- **Deploying a 70B model?** → [70B Model Deployment](#70b-model-deployment)
+- **Tackling 405B parameters?** → [405B Model Deployment](#405b-model-deployment)
+- **Customer-specific models?** → [LoRA Multi-Tenancy](#lora-multi-tenancy)
+- **Optimizing costs?** → [Cost Optimization](#cost-optimization)
 
 ---
 
@@ -11,7 +34,7 @@ This guide covers deploying multiple models simultaneously, large parameter mode
 
 1. [Multi-Model Serving (Multiple 7B Models)](#multi-model-serving)
 2. [70B Model Deployment](#70b-model-deployment)
-3. [100GB+ Model Deployment (405B Parameters)](#405b-model-deployment)
+3. [405B Model Deployment](#405b-model-deployment)
 4. [LoRA Multi-Tenancy for Customer-Specific Models](#lora-multi-tenancy)
 5. [Production Architecture Patterns](#production-architecture)
 6. [Cost Optimization Strategies](#cost-optimization)
@@ -294,7 +317,7 @@ vllm serve \
 
 ---
 
-## 100GB+ Model Deployment (405B Parameters) {#405b-model-deployment}
+## 405B Model Deployment {#405b-model-deployment}
 
 ### Use Case
 Meta Llama 3.1 405B, GPT-4 scale models (400B+ parameters)

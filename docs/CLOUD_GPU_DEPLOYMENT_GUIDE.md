@@ -1,15 +1,30 @@
 # Cloud GPU Deployment Guide
 
-**Target Audience:** Mac users and developers who need to deploy LLMs to cloud GPU instances
-**Purpose:** Practical step-by-step guide for deploying Docker containers to AWS, GCP, and Azure GPU instances
+Deploy your first LLM to the cloud in 15 minutes. This guide walks you through setting up a cloud GPU instance and running vLLM or llama.cpp containers.
 
-This guide assumes you're working from a Mac (or any local machine without GPU) and need to deploy to cloud infrastructure.
+**Target Audience:** Mac users, developers without local GPUs, teams deploying staging environments
+
+---
+
+## Quick Start: AWS in 5 Steps
+
+**Fastest path from zero to running LLM API:**
+
+1. **Launch Instance:** AWS Console → EC2 → Launch `g5.xlarge` (Deep Learning AMI)
+2. **Download Key:** Save `llm-server-key.pem` from AWS
+3. **SSH In:** `ssh -i llm-server-key.pem ubuntu@YOUR_INSTANCE_IP`
+4. **Run vLLM:** `docker run -d --gpus all -p 8000:8000 vllm/vllm-openai:latest --model Qwen/Qwen2.5-7B-Instruct`
+5. **Test:** `curl http://YOUR_INSTANCE_IP:8000/v1/models`
+
+**Total time:** ~15 minutes | **Cost:** $1.01/hour | **Result:** Production-ready LLM API
+
+*See [AWS EC2 GPU Instance Setup](#aws-ec2) for detailed instructions.*
 
 ---
 
 ## Table of Contents
 
-1. [Why Cloud Deployment?](#why-cloud)
+1. [Quick Start: AWS in 5 Steps](#quick-start-aws-in-5-steps)
 2. [AWS EC2 GPU Instance Setup](#aws-ec2)
 3. [GCP Compute Engine GPU Setup](#gcp-compute)
 4. [Azure GPU VM Setup](#azure-vm)
@@ -17,6 +32,7 @@ This guide assumes you're working from a Mac (or any local machine without GPU) 
 6. [Deploying llama.cpp Container](#deploy-llama-cpp)
 7. [Cost Comparison & Recommendations](#cost-comparison)
 8. [Mac Local Testing (CPU-Only)](#mac-local-testing)
+9. [Why Cloud Deployment?](#why-cloud)
 
 ---
 

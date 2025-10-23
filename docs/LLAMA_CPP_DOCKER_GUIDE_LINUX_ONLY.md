@@ -556,6 +556,436 @@ curl http://localhost:8080/health
 
 ---
 
+## Tool Calling / Function Calling
+
+### Overview
+
+**llama.cpp has native tool calling support** with an OpenAI-compatible API. As of 2025, llama.cpp supports both "native" tool formats for specific models and a "generic" fallback for others.
+
+**Docker Desktop 4.42+** includes enhanced tool calling support, making it easy to run locally-hosted models with function calling capabilities.
+
+### Supported Models
+
+**Native Format Support (Most Efficient):**
+- **Llama 3.1/3.2/3.3** - Includes builtin tools: wolfram_alpha, web_search, code_interpreter
+- **Qwen 2.5** - Excellent tool calling performance
+- **Mistral Nemo** - Native function calling
+- **Functionary v3.1/v3.2** - Purpose-built for function calling
+- **Hermes 2/3** - Strong tool use capabilities
+- **Firefunction v2**, **Command R7B**, **DeepSeek R1**
+
+**Generic Support (Fallback):**
+- Any model with proper `chat_template` support
+- May consume more tokens and be less efficient than native formats
+
+### Requirements
+
+1. **Jinja Template Support**: Start server with `--jinja` flag
+2. **Compatible Model**: Verify `chat_template` or `chat_template_tool_use` in model props
+3. **Optional Template Override**: Use `--chat-template-file` for optimal performance
+
+### Docker Setup for Tool Calling
+
+**Step 1: Download a Tool-Calling Model**
+
+```bash
+# Download Qwen 2.5 7B (excellent tool calling support)
+wget https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf \
+  -O ~/llama-models/qwen-2.5-7b-q4.gguf
+
+# Or Llama 3.3 70B (if you have 48GB+ VRAM)
+# wget https://huggingface.co/QuantFactory/Llama-3.3-70B-Instruct-GGUF/resolve/main/Llama-3.3-70B-Instruct.Q4_K_M.gguf \
+#   -O ~/llama-models/llama-3.3-70b-q4.gguf
+```
+
+**Step 2: Start Server with Jinja Support**
+
+**CPU Server:**
+```bash
+docker run -d \
+  --name llama-tools-server \
+  -p 8080:8080 \
+  -v ~/llama-models:/models \
+  ghcr.io/ggml-org/llama.cpp:server \
+  -m /models/qwen-2.5-7b-q4.gguf \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --jinja \
+  -fa \
+  -c 4096
+```
+
+**GPU Server:**
+```bash
+docker run -d \
+  --name llama-tools-server-gpu \
+  --gpus all \
+  -p 8080:8080 \
+  -v ~/llama-models:/models \
+  llama-cpp:cuda-server \
+  -m /models/qwen-2.5-7b-q4.gguf \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --jinja \
+  -fa \
+  -c 4096 \
+  --n-gpu-layers 99
+```
+
+**Parameters explained:**
+- `--jinja` - Enable Jinja template support for tool calling
+- `-fa` - Flash attention for better performance (optional)
+- `-c 4096` - Context size
+
+**Step 3: Verify Tool Calling Support**
+
+```bash
+# Check if model has tool calling template
+curl http://localhost:8080/props | jq '.chat_template'
+
+# Should see a Jinja template with tool/function support
+```
+
+### Using Tool Calling API
+
+**Example 1: Simple Function Call (Weather)**
+
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen-2.5-7b",
+    "messages": [
+      {"role": "user", "content": "What is the weather in Istanbul?"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_current_weather",
+          "description": "Get the current weather in a given location",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "The city name, e.g., Istanbul"
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "Temperature unit"
+              }
+            },
+            "required": ["location"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  }'
+```
+
+**Response will include:**
+```json
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_123",
+            "type": "function",
+            "function": {
+              "name": "get_current_weather",
+              "arguments": "{\"location\": \"Istanbul\", \"unit\": \"celsius\"}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+**Example 2: Multiple Tools (Calculator)**
+
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen-2.5-7b",
+    "messages": [
+      {"role": "user", "content": "Calculate 42 * 18, then convert the result to hexadecimal"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "calculate",
+          "description": "Perform mathematical calculations",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "expression": {"type": "string"}
+            },
+            "required": ["expression"]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "convert_to_hex",
+          "description": "Convert a decimal number to hexadecimal",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "number": {"type": "integer"}
+            },
+            "required": ["number"]
+          }
+        }
+      }
+    ],
+    "parallel_tool_calls": true
+  }'
+```
+
+**Example 3: Parallel Tool Calling**
+
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen-2.5-7b",
+    "messages": [
+      {"role": "user", "content": "What is the weather in London and Paris?"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_current_weather",
+          "description": "Get current weather",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {"type": "string"}
+            },
+            "required": ["location"]
+          }
+        }
+      }
+    ],
+    "parallel_tool_calls": true
+  }'
+```
+
+### Python Client Example
+
+```python
+from openai import OpenAI
+
+# Point to local llama.cpp server
+client = OpenAI(
+    base_url="http://localhost:8080/v1",
+    api_key="not-needed"
+)
+
+# Define tools
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_current_weather",
+            "description": "Get the current weather in a location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City name"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": ["celsius", "fahrenheit"]
+                    }
+                },
+                "required": ["location"]
+            }
+        }
+    }
+]
+
+# Make request with tool calling
+response = client.chat.completions.create(
+    model="qwen-2.5-7b",
+    messages=[
+        {"role": "user", "content": "What's the weather in Tokyo?"}
+    ],
+    tools=tools,
+    tool_choice="auto"
+)
+
+# Check if model wants to call a function
+message = response.choices[0].message
+if message.tool_calls:
+    for tool_call in message.tool_calls:
+        print(f"Function: {tool_call.function.name}")
+        print(f"Arguments: {tool_call.function.arguments}")
+
+        # In real implementation, execute the function here
+        # and send the result back to the model
+```
+
+### Full Tool Calling Workflow
+
+```python
+import json
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8080/v1", api_key="not-needed")
+
+# Step 1: Define available functions
+def get_current_weather(location, unit="celsius"):
+    """Simulate weather API call"""
+    return {
+        "location": location,
+        "temperature": 22,
+        "unit": unit,
+        "forecast": "sunny"
+    }
+
+# Step 2: Send initial request
+messages = [{"role": "user", "content": "What's the weather in Paris?"}]
+
+response = client.chat.completions.create(
+    model="qwen-2.5-7b",
+    messages=messages,
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "get_current_weather",
+            "description": "Get current weather",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string"},
+                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+                },
+                "required": ["location"]
+            }
+        }
+    }]
+)
+
+# Step 3: Execute function if model requests it
+message = response.choices[0].message
+if message.tool_calls:
+    # Add assistant message to conversation
+    messages.append(message)
+
+    # Execute each function call
+    for tool_call in message.tool_calls:
+        function_name = tool_call.function.name
+        function_args = json.loads(tool_call.function.arguments)
+
+        # Call the actual function
+        function_response = get_current_weather(**function_args)
+
+        # Add function result to conversation
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(function_response)
+        })
+
+    # Step 4: Get final response from model
+    final_response = client.chat.completions.create(
+        model="qwen-2.5-7b",
+        messages=messages
+    )
+
+    print(final_response.choices[0].message.content)
+    # Output: "The weather in Paris is sunny with a temperature of 22°C."
+```
+
+### Native vs Orchestration Approach
+
+**llama.cpp Native Tool Calling:**
+- ✅ Built-in OpenAI compatibility
+- ✅ Simpler setup (no FastAPI layer needed)
+- ✅ Lower latency (direct model-to-tool)
+- ✅ Supported by many popular models
+- ❌ Limited to model's native capabilities
+- ❌ Less control over execution flow
+
+**FastAPI Orchestration (Lab 9 approach):**
+- ✅ Full control over business logic
+- ✅ Custom validation and error handling
+- ✅ Multi-step workflows
+- ✅ Works with any LLM backend
+- ✅ Add features like rate limiting, auth, logging
+- ❌ More complex architecture
+- ❌ Slightly higher latency
+
+**Recommendation:**
+- **Simple use cases**: Use llama.cpp native tool calling
+- **Complex workflows**: Use FastAPI orchestration layer
+- **Production systems**: Consider hybrid (llama.cpp for detection, FastAPI for execution)
+
+### Tool Calling Best Practices
+
+1. **Choose the right model:**
+   - Qwen 2.5 7B: Excellent balance of size and performance
+   - Llama 3.3 70B: Best quality (requires 48GB+ VRAM)
+   - Functionary: Purpose-built for function calling
+
+2. **Avoid aggressive quantization:**
+   - Don't use extreme KV quantizations (e.g., `-ctk q4_0`)
+   - Stick to Q4_K_M or Q8_0 for best tool calling accuracy
+
+3. **Enable parallel tool calls when needed:**
+   ```json
+   {"parallel_tool_calls": true}
+   ```
+
+4. **Verify template support:**
+   ```bash
+   curl http://localhost:8080/props | jq '.chat_template'
+   ```
+
+5. **Use appropriate context size:**
+   - Tool calling uses more tokens
+   - Use `-c 4096` or higher for complex tools
+
+### Troubleshooting Tool Calling
+
+**Model doesn't generate tool calls:**
+- Verify `--jinja` flag is set
+- Check model has `chat_template` support: `curl http://localhost:8080/props`
+- Try `--chat-template-file` with explicit template
+
+**Tool calls are malformed:**
+- Avoid aggressive quantization (use Q4_K_M or better)
+- Increase context size (`-c 4096`)
+- Use a model with native tool support (Qwen, Llama 3.3)
+
+**Slow performance:**
+- Enable GPU layers: `--n-gpu-layers 99`
+- Use flash attention: `-fa`
+- Reduce context size if not needed
+
+### Additional Resources
+
+- **llama.cpp Function Calling Docs**: https://github.com/ggml-org/llama.cpp/blob/master/docs/function-calling.md
+- **Docker Desktop Tool Calling**: https://www.docker.com/blog/docker-desktop-4-42/
+- **OpenAI Tool Calling Guide**: https://platform.openai.com/docs/guides/function-calling
+
+---
+
 ## Best Practices
 
 ### Performance Tips

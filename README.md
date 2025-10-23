@@ -21,6 +21,12 @@ Mastering_LLM_Deployment/
 
 **📖 [View Deployment Documentation →](docs/README.md)**
 
+## 📊 Course Slides & Labs
+
+**[📚 Access All Lab Slides Here →](https://docs.google.com/presentation/d/1-FTmWgVct1Ydkwvyy8ZR-mFl7KGbH-TzZRZvfMk5aRo/edit?slide=id.g39bdb786812_0_79)**
+
+All lab instructions, exercises, and walkthroughs are available in the course presentation.
+
 ## 🎯 Two-Track System
 
 ### **Track 1: Course Delivery (Google Colab - CUDA)**
@@ -54,24 +60,24 @@ python run_all_tests.py
 ## 📚 Lab Overview
 
 ### Labs 1-2: Foundations (Mac Compatible)
-- **Lab 1**: Keras Quick Refresher
-- **Lab 2**: GradientTape Refresher
+- **Lab 1**: Keras Quick Refresher ([Lab Notebook →](lab_notebooks/Lab1_Keras_Quick_Refresher.ipynb))
+- **Lab 2**: GradientTape Refresher ([Lab Notebook →](lab_notebooks/Lab2_GradientTape_Refresher.ipynb))
 - **Platform**: Works everywhere (CPU/GPU/MPS)
 
-### Labs 3-6: Unsloth Optimization (Requires Colab)
-- **Lab 3**: Hello Unsloth - Model Loading & Inference
-- **Lab 4**: Knowledge Distillation with SQuAD
-- **Lab 5**: Model Pruning with SST-2
-- **Lab 6**: Quantization with IMDB
+### Labs 3-7: Unsloth Optimization (Requires Colab)
+- **Lab 3**: PyTorch Fundamentals ([Lab Notebook →](lab_notebooks/Lab3_PyTorch_Fundamentals.ipynb))
+- **Lab 4**: Hello Unsloth ([Lab Notebook →](lab_notebooks/Lab4_Hello_Unsloth.ipynb))
+- **Lab 5**: Knowledge Distillation with SQuAD ([Lab Notebook →](lab_notebooks/Lab5_Distillation_Unsloth_SQuAD.ipynb))
+- **Lab 6**: Model Pruning with SST-2 ([Lab Notebook →](lab_notebooks/Lab6_Pruning_Unsloth_SST2.ipynb))
+- **Lab 7**: Quantization with IMDB ([Lab Notebook →](lab_notebooks/Lab7_Quantization_Unsloth_IMDB.ipynb))
 
 **⚠️ Note**: These labs require **Google Colab with CUDA**. Unsloth does not work on Mac M3.
 
-**For Mac Testing**: See `python_tests/lab3-6_*.py` for concept demonstrations using transformers library.
+**For Mac Testing**: See `python_tests/lab3-8_*.py` for concept demonstrations using transformers library.
 
-### Labs 7-9: Deployment (Mac Compatible)
-- **Lab 7**: FastAPI OpenAI-Compatible API (Colab notebook)
-- **Lab 8**: Production vLLM Deployment with Docker ([Walkthrough Guide →](docs/LAB_8_VLLM_DEPLOYMENT.md))
-- **Lab 9**: FastAPI Tool Calling with vLLM ([Walkthrough Guide →](docs/LAB_9_TOOL_CALLING.md))
+### Labs 8-9: Deployment (Mac Compatible)
+- **Lab 8**: FastAPI OpenAI-Compatible API ([Lab Notebook →](lab_notebooks/Lab8_Deployment_OpenAI_Compatible_FastAPI.ipynb) | [Walkthrough Guide →](docs/LAB_8_VLLM_DEPLOYMENT.md))
+- **Lab 9**: FastAPI Tool Calling with vLLM ([Lab Notebook →](lab_notebooks/Lab9_Deployment_OpenAI_Compatible_FastAPI_With_Tool_Calling.ipynb) | [Walkthrough Guide →](docs/LAB_9_TOOL_CALLING.md))
 - **Platform**: Works on Mac M3 (tested) or cloud GPU instances
 
 **📖 Production Deployment Guides**: See [docs/](docs/README.md) for comprehensive cloud deployment, enterprise-scale, and real-world case studies
@@ -221,6 +227,12 @@ When adding new labs:
 - [Google Colab](https://colab.research.google.com/)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Transformers Documentation](https://huggingface.co/docs/transformers/)
+
+## ✅ Solutions
+
+**[View Complete Lab Solutions →](SOLUTIONS.md)**
+
+All solution notebooks and Python test versions are available on the dedicated solutions page.
 
 ---
 

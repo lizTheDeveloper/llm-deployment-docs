@@ -1,10 +1,12 @@
 # Lab 8: Production vLLM Deployment
 
-Deploy a production-ready LLM inference server using vLLM's OpenAI-compatible API with Docker.
+Deploy a production-ready LLM inference server using vLLM's OpenAI-compatible API with Docker on AWS.
 
-**Time:** 30 minutes
-**Prerequisites:** Docker with GPU support, or cloud GPU instance (AWS/GCP/Azure)
+**Time:** 30 minutes (after AWS setup)
+**Prerequisites:** AWS EC2 GPU instance with Docker (see setup below)
 **What You'll Build:** Production Docker container serving a 7B model with health checks and monitoring
+
+**Don't have an AWS GPU instance yet?** → Start with [Cloud GPU Deployment Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md) to set up your AWS EC2 g5.xlarge instance (15 minutes)
 
 ---
 
@@ -12,9 +14,9 @@ Deploy a production-ready LLM inference server using vLLM's OpenAI-compatible AP
 
 - Package an LLM for production deployment with Docker
 - Configure vLLM v1 engine for optimal performance
-- Set up health checks for container orchestration
-- Deploy to local GPU or cloud GPU instance
-- Test the OpenAI-compatible API
+- Set up health checks for container orchestration (ECS/Kubernetes)
+- Deploy to AWS EC2 GPU instance
+- Test the OpenAI-compatible API from your local machine
 
 ---
 
@@ -117,17 +119,34 @@ docker build -f Dockerfile.vllm -t my-llm-service:latest .
 
 ---
 
-## Step 4: Run the Container
+## Step 4: Deploy to AWS EC2
 
-### Local GPU Deployment
+### Prerequisites: AWS EC2 Instance Setup
+
+If you haven't set up your AWS EC2 instance yet, follow this quick start:
+
+1. **Launch EC2 instance**: AWS Console → EC2 → Launch `g5.xlarge` (Deep Learning AMI)
+2. **Download key**: Save `llm-server-key.pem`
+3. **SSH into instance**: `ssh -i llm-server-key.pem ubuntu@YOUR_INSTANCE_IP`
+
+**Full AWS setup guide:** [Cloud GPU Deployment Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md)
+
+### Run the Container on AWS
+
+SSH into your EC2 instance, then run:
 
 ```bash
+# On your AWS EC2 instance
 docker run -d \
   --name vllm-server \
   --gpus all \
   -p 8000:8000 \
   -e HF_TOKEN=your_huggingface_token \
-  my-llm-service:latest
+  vllm/vllm-openai:latest \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --dtype float16 \
+  --max-model-len 4096 \
+  --gpu-memory-utilization 0.9
 
 # Check logs
 docker logs -f vllm-server
@@ -137,30 +156,30 @@ docker logs -f vllm-server
 # "Uvicorn running on http://0.0.0.0:8000"
 ```
 
-### Cloud GPU Deployment (AWS/GCP/Azure)
+**Note:** Using the vLLM image directly is faster than building your own Dockerfile for initial testing.
 
-After SSH-ing into your cloud instance:
+### Alternative: Local GPU or Other Clouds
+
+If you have a local NVIDIA GPU or prefer GCP/Azure:
 
 ```bash
-# Same command as above
-docker run -d \
-  --name vllm-server \
-  --gpus all \
-  -p 8000:8000 \
-  -e HF_TOKEN=your_huggingface_token \
-  my-llm-service:latest
+# Same docker run command works on any GPU instance with Docker + nvidia-docker
+docker run -d --name vllm-server --gpus all -p 8000:8000 ...
 ```
-
-**Note:** See [Cloud GPU Deployment Guide](CLOUD_GPU_DEPLOYMENT_GUIDE.md) for detailed cloud setup instructions.
 
 ---
 
-## Step 5: Test the API
+## Step 5: Test the API from Your Local Machine
+
+Now test the deployed API from your local Mac/PC. Replace `YOUR_INSTANCE_IP` with your EC2 public IP.
 
 ### Health Check
 
 ```bash
-curl http://localhost:8000/health
+# From your local terminal (Mac/PC)
+export AWS_IP=54.123.45.67  # Replace with your EC2 public IP
+
+curl http://${AWS_IP}:8000/health
 
 # Response:
 # {"status": "ok"}
@@ -169,7 +188,7 @@ curl http://localhost:8000/health
 ### List Available Models
 
 ```bash
-curl http://localhost:8000/v1/models
+curl http://${AWS_IP}:8000/v1/models
 
 # Response:
 # {
@@ -188,7 +207,7 @@ curl http://localhost:8000/v1/models
 ### Generate a Completion
 
 ```bash
-curl http://localhost:8000/v1/chat/completions \
+curl http://${AWS_IP}:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "Qwen/Qwen2.5-7B-Instruct",
@@ -200,14 +219,14 @@ curl http://localhost:8000/v1/chat/completions \
   }'
 ```
 
-### Using the OpenAI Python SDK
+### Using the OpenAI Python SDK (from Your Mac)
 
 ```python
 from openai import OpenAI
 
-# Point to your vLLM server
+# Point to your AWS vLLM server
 client = OpenAI(
-    base_url="http://localhost:8000/v1",
+    base_url="http://54.123.45.67:8000/v1",  # Replace with your EC2 IP
     api_key="dummy"  # vLLM doesn't require authentication
 )
 
@@ -221,48 +240,58 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
+**Troubleshooting connection refused?** Check your EC2 Security Group allows inbound traffic on port 8000 from your IP.
+
 ---
 
-## Step 6: Monitor Performance
+## Step 6: Monitor Performance on AWS
 
-### GPU Utilization
+### GPU Utilization on EC2
 
 ```bash
-# While the container is running
+# SSH into your AWS EC2 instance
+ssh -i llm-server-key.pem ubuntu@YOUR_INSTANCE_IP
+
+# Check GPU utilization
 nvidia-smi
 
 # You should see:
 # - GPU memory usage (14-16GB for 7B FP16 model)
 # - GPU utilization (50-100% during inference)
+# - Temperature and power usage
 ```
 
-### vLLM Metrics
+### vLLM Metrics (from your local machine)
 
 ```bash
-# vLLM exposes Prometheus metrics
-curl http://localhost:8000/metrics
+# From your Mac/PC - vLLM exposes Prometheus metrics
+curl http://${AWS_IP}:8000/metrics
 
-# Key metrics:
-# - vllm:num_requests_running
-# - vllm:time_to_first_token_seconds
-# - vllm:time_per_output_token_seconds
-# - vllm:gpu_cache_usage_perc
+# Key metrics for production monitoring:
+# - vllm:num_requests_running       # Active requests
+# - vllm:time_to_first_token_seconds # Latency
+# - vllm:time_per_output_token_seconds # Throughput
+# - vllm:gpu_cache_usage_perc        # Memory usage
 ```
+
+**AWS CloudWatch Integration:** For production, export these metrics to CloudWatch using the CloudWatch Agent on your EC2 instance.
 
 ---
 
-## Production Deployment Checklist
+## AWS Production Deployment Checklist
 
-Before deploying to production:
+Before deploying to production on AWS:
 
-- [ ] Configure proper firewall rules (don't expose 8000 to public internet)
-- [ ] Set up HTTPS reverse proxy (nginx, Traefik, or cloud load balancer)
-- [ ] Configure resource limits in Kubernetes/ECS
-- [ ] Set up monitoring (Prometheus + Grafana)
-- [ ] Configure autoscaling based on queue depth
-- [ ] Implement rate limiting
-- [ ] Add authentication/authorization layer
-- [ ] Test with production-scale load
+- [ ] **Security Groups**: Restrict port 8000 to specific IPs (not 0.0.0.0/0)
+- [ ] **Load Balancer**: Set up AWS Application Load Balancer with HTTPS (ACM certificate)
+- [ ] **AWS ECS**: Deploy container to ECS Fargate or EC2 with GPU task definitions
+- [ ] **CloudWatch**: Configure CloudWatch Logs and custom metrics
+- [ ] **Auto Scaling**: Set up ECS auto scaling based on request queue depth
+- [ ] **API Gateway**: Add AWS API Gateway for rate limiting and API keys
+- [ ] **Authentication**: Implement AWS Cognito or API Gateway auth
+- [ ] **Load Testing**: Use AWS Load Testing tools or Locust to validate performance
+
+**Next Level**: See [Enterprise-Scale Deployment](ENTERPRISE_SCALE_DEPLOYMENT.md) for Kubernetes on AWS EKS
 
 ---
 

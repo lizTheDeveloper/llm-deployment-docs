@@ -1,10 +1,10 @@
-# Lab 9: FastAPI Tool Calling with vLLM
+# Lab 9: FastAPI Tool Calling with vLLM on AWS
 
-Build a production two-tier architecture: FastAPI orchestration layer + vLLM inference engine for LLM tool calling.
+Build a production two-tier architecture: FastAPI orchestration layer + vLLM inference engine for LLM tool calling, deployed to AWS EC2.
 
 **Time:** 45 minutes
-**Prerequisites:** Completed [Lab 8](LAB_8_VLLM_DEPLOYMENT.md), Docker Compose, cloud GPU instance
-**What You'll Build:** Multi-service deployment with tool calling (weather, calculator) and vLLM backend
+**Prerequisites:** Completed [Lab 8](LAB_8_VLLM_DEPLOYMENT.md), AWS EC2 GPU instance with Docker
+**What You'll Build:** Multi-service deployment with tool calling (weather, calculator) and vLLM backend running on AWS
 
 ---
 
@@ -12,9 +12,9 @@ Build a production two-tier architecture: FastAPI orchestration layer + vLLM inf
 
 - Design two-tier LLM architectures (orchestration + inference)
 - Implement tool calling with FastAPI
-- Deploy multi-service applications with Docker Compose
-- Separate business logic from inference
-- Scale orchestration and inference layers independently
+- Deploy multi-service applications with Docker Compose on AWS
+- Separate business logic from inference for independent scaling
+- Deploy to AWS ECS for production use
 
 ---
 
@@ -148,11 +148,26 @@ CMD ["uvicorn", "tool_orchestrator:app", "--host", "0.0.0.0", "--port", "8001"]
 
 ---
 
-## Step 4: Deploy the Multi-Service Stack
+## Step 4: Deploy the Multi-Service Stack to AWS
 
-### Start All Services
+### Upload Files to Your AWS EC2 Instance
 
 ```bash
+# From your local Mac/PC
+# Upload docker-compose.yml and tool_orchestrator.py to AWS
+scp -i llm-server-key.pem docker-compose.yml tool_orchestrator.py \
+    ubuntu@YOUR_INSTANCE_IP:~/
+
+# Also upload Dockerfile.orchestrator
+scp -i llm-server-key.pem Dockerfile.orchestrator ubuntu@YOUR_INSTANCE_IP:~/
+```
+
+### Start All Services on AWS
+
+```bash
+# SSH into your AWS EC2 instance
+ssh -i llm-server-key.pem ubuntu@YOUR_INSTANCE_IP
+
 # Start both vLLM and orchestrator
 docker-compose up -d
 
@@ -163,10 +178,10 @@ docker-compose up -d
 # 4. Start both services in containers
 ```
 
-### Check Logs
+### Check Logs on AWS
 
 ```bash
-# Watch both services start up
+# On your AWS EC2 instance - watch both services start up
 docker-compose logs -f
 
 # Wait for these messages:
@@ -175,26 +190,36 @@ docker-compose logs -f
 # orchestrator_1 | Uvicorn running on http://0.0.0.0:8001
 ```
 
-### Verify Services
+### Verify Services (from Your Local Machine)
 
 ```bash
+# From your Mac/PC
+export AWS_IP=54.123.45.67  # Replace with your EC2 public IP
+
 # Check vLLM health
-curl http://localhost:8000/health
+curl http://${AWS_IP}:8000/health
 # Response: {"status":"ok"}
 
 # Check orchestrator health
-curl http://localhost:8001/v1/models
+curl http://${AWS_IP}:8001/v1/models
 # Response: Should forward to vLLM and show model info
 ```
 
+**Important:** Update your AWS Security Group to allow inbound traffic on port 8001 (orchestrator) in addition to port 8000 (vLLM).
+
 ---
 
-## Step 5: Test Tool Calling
+## Step 5: Test Tool Calling from Your Local Machine
+
+Now test the tool calling feature from your Mac/PC, calling the AWS orchestrator.
 
 ### Weather Tool Example
 
 ```bash
-curl http://localhost:8001/v1/chat/completions \
+# From your Mac/PC
+export AWS_IP=54.123.45.67  # Replace with your EC2 public IP
+
+curl http://${AWS_IP}:8001/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "Qwen/Qwen2.5-7B-Instruct",
@@ -240,7 +265,8 @@ curl http://localhost:8001/v1/chat/completions \
 ### Calculator Tool Example
 
 ```bash
-curl http://localhost:8001/v1/chat/completions \
+# From your Mac/PC
+curl http://${AWS_IP}:8001/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "Qwen/Qwen2.5-7B-Instruct",
@@ -272,14 +298,14 @@ curl http://localhost:8001/v1/chat/completions \
 # "The result of 123 * 456 is 56088"
 ```
 
-### Python SDK Example
+### Python SDK Example (from Your Mac)
 
 ```python
 from openai import OpenAI
 
-# Point to orchestrator (NOT vLLM directly)
+# Point to AWS orchestrator (NOT vLLM directly)
 client = OpenAI(
-    base_url="http://localhost:8001/v1",
+    base_url="http://54.123.45.67:8001/v1",  # Replace with your EC2 IP
     api_key="dummy"
 )
 
@@ -399,56 +425,110 @@ async def chat_with_tools(
 
 ---
 
-## Step 8: Deploy to Cloud
+## Step 8: Deploy to AWS ECS (Production)
 
-### AWS ECS Deployment
+For production deployments, use AWS ECS to deploy the two-tier architecture with independent scaling.
 
-Create two ECS services:
+### Architecture on AWS ECS
 
-**vLLM Service (GPU tasks):**
-- Instance type: g5.xlarge
-- Task definition: vLLM container
-- Port: 8000 (internal only)
-
-**Orchestrator Service (CPU tasks):**
-- Instance type: t3.medium
-- Task definition: Orchestrator container
-- Port: 8001 (public via load balancer)
-- Scale: 3-10 replicas (autoscaling)
-
-### Kubernetes Deployment
-
-```yaml
-# vllm-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm
-spec:
-  replicas: 1  # GPU is expensive, scale vertically
-  template:
-    spec:
-      containers:
-      - name: vllm
-        image: vllm/vllm-openai:latest
-        resources:
-          limits:
-            nvidia.com/gpu: 1
-
----
-# orchestrator-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: orchestrator
-spec:
-  replicas: 5  # CPU is cheap, scale horizontally
-  template:
-    spec:
-      containers:
-      - name: orchestrator
-        image: my-orchestrator:latest
 ```
+Internet → ALB (Port 443) → Orchestrator Tasks (CPU) → vLLM Tasks (GPU)
+                                   ↓                          ↓
+                            Auto Scaling (3-10)        Single Task (g5.xlarge)
+```
+
+### Step-by-Step ECS Deployment
+
+**1. Push Docker Images to ECR**
+
+```bash
+# From your Mac/PC
+# Create ECR repositories
+aws ecr create-repository --repository-name vllm-service
+aws ecr create-repository --repository-name orchestrator-service
+
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+
+# Tag and push images
+docker tag vllm/vllm-openai:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/vllm-service:latest
+docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/vllm-service:latest
+
+docker tag my-orchestrator:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/orchestrator-service:latest
+docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/orchestrator-service:latest
+```
+
+**2. Create ECS Task Definitions**
+
+**vLLM Task Definition (GPU):**
+```json
+{
+  "family": "vllm-task",
+  "requiresCompatibilities": ["EC2"],
+  "networkMode": "bridge",
+  "containerDefinitions": [
+    {
+      "name": "vllm",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/vllm-service:latest",
+      "memory": 24576,
+      "portMappings": [{"containerPort": 8000}],
+      "resourceRequirements": [
+        {"type": "GPU", "value": "1"}
+      ]
+    }
+  ]
+}
+```
+
+**Orchestrator Task Definition (CPU):**
+```json
+{
+  "family": "orchestrator-task",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "1024",
+  "memory": "2048",
+  "containerDefinitions": [
+    {
+      "name": "orchestrator",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/orchestrator-service:latest",
+      "portMappings": [{"containerPort": 8001}],
+      "environment": [
+        {"name": "VLLM_URL", "value": "http://vllm-service:8000"}
+      ]
+    }
+  ]
+}
+```
+
+**3. Create ECS Services**
+
+**vLLM Service:**
+- Cluster: Your ECS cluster with GPU instances (g5.xlarge)
+- Task definition: vllm-task
+- Desired count: 1 (GPU is expensive)
+- Launch type: EC2 (for GPU support)
+
+**Orchestrator Service:**
+- Cluster: Same ECS cluster
+- Task definition: orchestrator-task
+- Desired count: 3-10
+- Launch type: FARGATE (CPU only)
+- Auto Scaling: Based on CPU utilization
+- Load balancer: Application Load Balancer on port 443
+
+**4. Configure Application Load Balancer**
+
+- **Listener**: HTTPS (443) with ACM certificate
+- **Target Group**: Orchestrator tasks on port 8001
+- **Health Check**: `/v1/models` endpoint
+
+**Full guide:** See [Enterprise-Scale Deployment](ENTERPRISE_SCALE_DEPLOYMENT.md) for complete AWS ECS setup
+
+### Alternative: AWS EKS (Kubernetes)
+
+For Kubernetes on AWS EKS, see [Enterprise-Scale Deployment](ENTERPRISE_SCALE_DEPLOYMENT.md) for full manifests with GPU node pools.
 
 ---
 

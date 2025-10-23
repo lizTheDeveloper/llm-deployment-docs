@@ -1,0 +1,27 @@
+# MLX-LM Dockerfile for Apple Silicon (M1/M2/M3) - FAST on Mac
+# This uses Apple's native MLX framework optimized for Metal
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install MLX and MLX-LM (Apple's optimized framework)
+RUN pip install --no-cache-dir \
+    mlx \
+    mlx-lm \
+    fastapi \
+    uvicorn[standard] \
+    pydantic
+
+# Copy OpenAI-compatible API server script
+COPY mlx_api_server.py /app/
+
+# Expose API port
+EXPOSE 8000
+
+# MLX will automatically use Metal acceleration on Mac
+# Much faster than vLLM CPU mode (10-50x faster)
+CMD ["python", "mlx_api_server.py", \
+     "--model", "mlx-community/Qwen2.5-3B-Instruct-4bit", \
+     "--host", "0.0.0.0", \
+     "--port", "8000"]
+

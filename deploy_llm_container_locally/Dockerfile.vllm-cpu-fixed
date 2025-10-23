@@ -1,0 +1,85 @@
+# vLLM CPU-only Dockerfile for Mac (WARNING: Very slow, not recommended)
+# Build time: 20-30 minutes | Performance: 1-5 tokens/second  
+# Recommended: Use ./run_mlx_native.sh instead (20-60 tokens/second)
+FROM ubuntu:22.04
+
+WORKDIR /app
+
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install ALL system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    curl \
+    wget \
+    cmake \
+    ninja-build \
+    pkg-config \
+    libopenblas-dev \
+    python3.11 \
+    python3.11-dev \
+    python3.11-venv \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlinks for python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Install PyTorch CPU-only version
+RUN pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+
+# Install other dependencies that vLLM needs
+RUN pip install --no-cache-dir \
+    numpy \
+    transformers \
+    sentencepiece \
+    protobuf \
+    accelerate \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    huggingface_hub
+
+# Clone vLLM with specific version known to work with CPU
+RUN git clone --branch v0.6.0 --depth 1 https://github.com/vllm-project/vllm.git /tmp/vllm
+
+WORKDIR /tmp/vllm
+
+# Build vLLM with CPU backend (no CUDA)
+ENV VLLM_TARGET_DEVICE=cpu
+ENV VLLM_BUILD_WITH_CUDA=0
+ENV MAX_JOBS=2
+ENV CMAKE_BUILD_TYPE=Release
+
+# Try to install without building (use pre-built wheels if available)
+# If that fails, build from source
+RUN pip install --no-cache-dir  . || \
+    (echo "Pre-built wheel not available, building from source..." && \
+     pip install --no-cache-dir --verbose --no-build-isolation .)
+
+WORKDIR /app
+
+# Expose vLLM port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Note: CPU inference will be 10-100x slower than GPU
+# Changed model to a smaller one that works better with CPU
+CMD ["python3", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "TinyLlama/TinyLlama-1.1B-Chat-v1.0", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--dtype", "float32", \
+     "--max-model-len", "2048", \
+     "--device", "cpu", \
+     "--enforce-eager"]
+

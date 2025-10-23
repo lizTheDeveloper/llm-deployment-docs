@@ -1,0 +1,55 @@
+# vLLM CPU-only Dockerfile for Mac (WARNING: Very slow, not recommended)
+# This uses vLLM's experimental CPU backend without CUDA
+# Build time: 20-30 minutes | Performance: 1-5 tokens/second
+# Recommended: Use ./run_mlx_native.sh instead (20-60 tokens/second)
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install ALL system dependencies needed for building vLLM from source
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    curl \
+    cmake \
+    ninja-build \
+    pkg-config \
+    libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch CPU-only version
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Clone and install vLLM from source with CPU backend
+RUN git clone https://github.com/vllm-project/vllm.git /tmp/vllm
+
+WORKDIR /tmp/vllm
+
+# Build vLLM with CPU backend (no CUDA)
+# This will take 20-30 minutes to compile
+ENV VLLM_TARGET_DEVICE=cpu
+ENV VLLM_BUILD_WITH_CUDA=0
+ENV MAX_JOBS=2
+ENV CMAKE_BUILD_TYPE=Release
+
+# Install build dependencies first
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Do a regular install instead of editable to avoid setuptools issues
+RUN pip install --no-cache-dir --verbose .
+
+WORKDIR /app
+
+# Expose vLLM port
+EXPOSE 8000
+
+# Note: CPU inference will be 10-100x slower than GPU
+# Not recommended for production use
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", \
+     "--model", "unsloth/Qwen3-4B-unsloth-bnb-4bit", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--dtype", "float32", \
+     "--max-model-len", "2048", \
+     "--device", "cpu"]
+

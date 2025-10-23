@@ -132,6 +132,81 @@ This creates a highly efficient model that maintains reasoning capabilities.
 
 ---
 
+## Why Small Improvements Matter: The Illusion of Diminishing Returns
+
+### The Exponential Impact of Marginal Gains
+
+At first glance, the DeepSeek-R1 distillation results might seem like modest improvements:
+- **AIME 2024**: 47.0% → 72.6% (+25.6 percentage points)
+- **MATH-500**: 91.6% → 94.3% (+2.7 percentage points)
+
+However, research shows that **small improvements in single-step accuracy compound into exponential gains in long-horizon task execution**.
+
+**Paper**: [The Illusion of Diminishing Returns in Machine Learning](Illusion_Diminishing_Returns.pdf)
+
+### The Mathematical Foundation
+
+The paper proves (Proposition 1) that the relationship between single-step accuracy and horizon length follows:
+
+**H_s(p) = ln(s) / ln(p)**
+
+Where:
+- **H_s(p)** = Horizon length (number of steps a model can execute reliably)
+- **s** = Success threshold (e.g., 0.5 for 50% success rate)
+- **p** = Single-step accuracy
+
+### What This Means in Practice
+
+This formula reveals **hyperbolic growth** in the high-accuracy regime:
+
+| Single-Step Accuracy | Horizon Length (50% success) |
+|---------------------|------------------------------|
+| 90% | ~6 steps |
+| 95% | ~13 steps |
+| 97% | ~22 steps |
+| 99% | ~68 steps |
+
+**A 4% improvement (95% → 99%) extends task length by 5×.**
+
+### Applying This to DeepSeek-R1 Distillation
+
+Consider the **AIME 2024 improvement** (47.0% → 72.6%):
+- This isn't just a 25.6% point improvement in problem-solving
+- It represents **dramatically longer reasoning chains** the model can execute reliably
+- Each math olympiad problem requires multiple reasoning steps
+- Higher step accuracy means the model can tackle exponentially more complex problems
+
+The **MATH-500 improvement** (91.6% → 94.3%) is even more striking:
+- Appears as "only" 2.7 percentage points
+- But in the high-accuracy regime (>90%), this represents a **significant expansion in horizon length**
+- The model can now handle much longer multi-step reasoning tasks
+
+### Why Distillation on Smaller Models Matters
+
+This mathematical relationship explains why **even small accuracy gains from distillation are worth pursuing**:
+
+1. **Self-Conditioning Effect**: Models condition on their own outputs in multi-step tasks
+   - Each error increases the probability of subsequent errors
+   - Small improvements in step accuracy break this error cascade
+
+2. **Production Deployment**: Real-world tasks often require long reasoning chains
+   - Code generation: planning → implementation → testing → debugging
+   - Mathematical reasoning: understanding → decomposition → calculation → verification
+   - Analysis tasks: data exploration → hypothesis → validation → conclusion
+
+3. **Economic Justification**: The distillation process is cost-effective
+   - Training smaller models (1.5B - 32B) is cheaper than running 671B models
+   - Small accuracy improvements unlock exponentially more valuable capabilities
+   - Better ROI than it might appear from single-step metrics alone
+
+### Key Insight
+
+> **What appears to be diminishing returns on single-step accuracy translates to exponential growth in the length and complexity of tasks a model can reliably execute.**
+
+This is why the DeepSeek-R1 distillation results are more impressive than they initially appear, and why investing in distillation for "small" improvements on smaller models is worthwhile for production deployment.
+
+---
+
 ## Key Takeaways
 
 ### For Lab 5 (Distillation):

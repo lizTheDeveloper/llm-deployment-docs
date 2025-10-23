@@ -56,19 +56,19 @@ Production code examples from the course labs:
 Access all course lab notebooks:
 
 ### Labs 1-2: Foundations (Mac Compatible)
-- [Lab 1: Keras Quick Refresher](../lab_notebooks/Lab1_Keras_Quick_Refresher.ipynb)
-- [Lab 2: GradientTape Refresher](../lab_notebooks/Lab2_GradientTape_Refresher.ipynb)
+- [Lab 1: Keras Quick Refresher](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab1_Keras_Quick_Refresher.ipynb)
+- [Lab 2: GradientTape Refresher](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab2_GradientTape_Refresher.ipynb)
 
 ### Labs 3-7: Unsloth Optimization (Requires Colab)
-- [Lab 3: PyTorch Fundamentals](../lab_notebooks/Lab3_PyTorch_Fundamentals.ipynb)
-- [Lab 4: Hello Unsloth](../lab_notebooks/Lab4_Hello_Unsloth.ipynb)
-- [Lab 5: Knowledge Distillation with SQuAD](../lab_notebooks/Lab5_Distillation_Unsloth_SQuAD.ipynb)
-- [Lab 6: Model Pruning with SST-2](../lab_notebooks/Lab6_Pruning_Unsloth_SST2.ipynb)
-- [Lab 7: Quantization with IMDB](../lab_notebooks/Lab7_Quantization_Unsloth_IMDB.ipynb)
+- [Lab 3: PyTorch Fundamentals](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab3_PyTorch_Fundamentals.ipynb)
+- [Lab 4: Hello Unsloth](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab4_Hello_Unsloth.ipynb)
+- [Lab 5: Knowledge Distillation with SQuAD](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab5_Distillation_Unsloth_SQuAD.ipynb)
+- [Lab 6: Model Pruning with SST-2](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab6_Pruning_Unsloth_SST2.ipynb)
+- [Lab 7: Quantization with IMDB](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab7_Quantization_Unsloth_IMDB.ipynb)
 
 ### Labs 8-9: Deployment (Mac Compatible)
-- [Lab 8: FastAPI OpenAI-Compatible API](../lab_notebooks/Lab8_Deployment_OpenAI_Compatible_FastAPI.ipynb) | [Walkthrough Guide](LAB_8_VLLM_DEPLOYMENT.md)
-- [Lab 9: FastAPI Tool Calling with vLLM](../lab_notebooks/Lab9_Deployment_OpenAI_Compatible_FastAPI_With_Tool_Calling.ipynb) | [Walkthrough Guide](LAB_9_TOOL_CALLING.md)
+- [Lab 8: FastAPI OpenAI-Compatible API](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab8_Deployment_OpenAI_Compatible_FastAPI.ipynb) | [Walkthrough Guide](LAB_8_VLLM_DEPLOYMENT.md)
+- [Lab 9: FastAPI Tool Calling with vLLM](https://raw.githubusercontent.com/lizTheDeveloper/llm-deployment-docs/main/lab_notebooks/Lab9_Deployment_OpenAI_Compatible_FastAPI_With_Tool_Calling.ipynb) | [Walkthrough Guide](LAB_9_TOOL_CALLING.md)
 
 **[✅ View Complete Solutions →](SOLUTIONS.md)**
 

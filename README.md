@@ -19,13 +19,36 @@ Mastering_LLM_Deployment/
 └── devlog/                    # 📝 Development logs
 ```
 
-**📖 [View Deployment Documentation →](docs/README.md)**
+## 🔗 Quick Links
 
-## 📊 Course Slides & Labs
+### 📊 Course Materials
+- **[Course Slides & All Labs](https://docs.google.com/presentation/d/1-FTmWgVct1Ydkwvyy8ZR-mFl7KGbH-TzZRZvfMk5aRo/edit?slide=id.g39bdb786812_0_79)** - Complete course presentation
 
-**[📚 Access All Lab Slides Here →](https://docs.google.com/presentation/d/1-FTmWgVct1Ydkwvyy8ZR-mFl7KGbH-TzZRZvfMk5aRo/edit?slide=id.g39bdb786812_0_79)**
+### 📚 Lab Notebooks
+- [Lab 1: Keras Quick Refresher](lab_notebooks/Lab1_Keras_Quick_Refresher.ipynb)
+- [Lab 2: GradientTape Refresher](lab_notebooks/Lab2_GradientTape_Refresher.ipynb)
+- [Lab 3: PyTorch Fundamentals](lab_notebooks/Lab3_PyTorch_Fundamentals.ipynb)
+- [Lab 4: Hello Unsloth](lab_notebooks/Lab4_Hello_Unsloth.ipynb)
+- [Lab 5: Knowledge Distillation with SQuAD](lab_notebooks/Lab5_Distillation_Unsloth_SQuAD.ipynb)
+- [Lab 6: Model Pruning with SST-2](lab_notebooks/Lab6_Pruning_Unsloth_SST2.ipynb)
+- [Lab 7: Quantization with IMDB](lab_notebooks/Lab7_Quantization_Unsloth_IMDB.ipynb)
+- [Lab 8: FastAPI OpenAI-Compatible API](lab_notebooks/Lab8_Deployment_OpenAI_Compatible_FastAPI.ipynb)
+- [Lab 9: FastAPI Tool Calling with vLLM](lab_notebooks/Lab9_Deployment_OpenAI_Compatible_FastAPI_With_Tool_Calling.ipynb)
 
-All lab instructions, exercises, and walkthroughs are available in the course presentation.
+### 📖 Deployment Guides
+- **[Lab 8: Production vLLM Deployment](docs/LAB_8_VLLM_DEPLOYMENT.md)** - Deploy your first LLM with Docker (30 min)
+- **[Lab 9: FastAPI Tool Calling](docs/LAB_9_TOOL_CALLING.md)** - Two-tier system (FastAPI + vLLM) (45 min)
+- **[Cloud GPU Deployment Guide](docs/CLOUD_GPU_DEPLOYMENT_GUIDE.md)** - AWS/GCP/Azure deployment
+- **[Enterprise-Scale Deployment](docs/ENTERPRISE_SCALE_DEPLOYMENT.md)** - Kubernetes, multi-model serving, 70B+ models
+- **[Real-World Deployment Case Studies](docs/REAL_WORLD_DEPLOYMENT_BLOGS.md)** - Blog posts from Salesforce, Meta, Anthropic
+- **[GKE kubectl Commands Guide](docs/GKE_KUBECTL_COMMANDS.md)** - GKE Autopilot & kubectl reference
+- **[GCP Test Deployment](docs/GCP_TEST_DEPLOYMENT.md)** - Small-scale GCP deployment (400 users)
+- **[llama.cpp Docker Guide](docs/LLAMA_CPP_DOCKER_GUIDE_LINUX_ONLY.md)** - Linux-only alternative
+
+### ✅ Solutions & Tests
+- **[Complete Lab Solutions](SOLUTIONS.md)** - All solution notebooks (Labs 1-9)
+- **[Python Tests](python_tests/)** - Mac M3 compatible test versions
+- **[Deployment Documentation](docs/README.md)** - Full documentation index
 
 ## 🎯 Two-Track System
 
